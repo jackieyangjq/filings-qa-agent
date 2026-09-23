@@ -1,4 +1,4 @@
-"""Command line entry point: ``filings-qa ingest``, ``stats``, ``index``, ``search`` and ``ask``."""
+"""Command line entry point: ``filings-qa ingest``, ``stats``, ``index``, ``search``, ``ask`` and ``agent``."""
 
 from __future__ import annotations
 
@@ -14,6 +14,7 @@ from typing import Any
 import yaml
 
 from . import edgar
+from .agent import AGENT_MODELS, DEFAULT_MAX_STEPS, AgentResult, Step, rounds_text, run_agent
 from .answer import ANSWER_MODELS, Answer, answer
 from .chunk import chunk_filing
 from .embed import (
@@ -30,6 +31,7 @@ from .llm import Gemini, SetupError, short_error
 from .parse import html_to_text, split_items
 from .retrieve import STRATEGIES, retrieve
 from .store import Store, db_path
+from .tools import default_tools, tool_declarations
 
 DEFAULT_FORMS = ("10-K", "10-Q")
 DEFAULT_LIMIT = 4
@@ -280,7 +282,7 @@ def cmd_ask(args: argparse.Namespace) -> int:
     path = _existing_db(args.data)
     if path is None:
         return 1
-    models = [m.strip() for m in args.models.split(",") if m.strip()] if args.models else None
+    models = _models(args.models)
     with Store(path) as store:
         try:
             dense, embedder = _load_dense(store, path, args)
@@ -306,6 +308,85 @@ def cmd_ask(args: argparse.Namespace) -> int:
         print(json.dumps(result.to_dict(), indent=2, ensure_ascii=False))
     else:
         _print_answer(result)
+    return 0
+
+
+def _models(arg: str | None) -> list[str] | None:
+    """The models of a comma-separated ``--models``, or None (the default models) when none is named."""
+    models = [m.strip() for m in (arg or "").split(",") if m.strip()]
+    return models or None
+
+
+def _step_lines(step: Step) -> tuple[str, str]:
+    """``→ tool(arg=value, ...)`` and the indented one-line summary of its result."""
+    args = ", ".join(f"{name}={json.dumps(value, ensure_ascii=False)}" for name, value in step.args.items())
+    return f"→ {step.tool}({args})", f"  {step.result_summary}"
+
+
+def _print_agent_result(result: AgentResult) -> None:
+    print()
+    print(result.final_answer)
+    print()
+    if result.truncated:
+        print(
+            f"Note: the model still wanted tools after {rounds_text(result.max_steps)} of tool calls (--max-steps),"
+            " so it answered from the results it had."
+        )
+    if result.unknown_citations:
+        print(
+            f"Warning: the answer cites {', '.join(result.unknown_citations)}, which no search in this run returned;"
+            " treat those statements as unsupported."
+        )
+    u = result.usage
+    trace = f" trace={result.trace_path}" if result.trace_path else ""
+    print(
+        f"model={','.join(result.models) or 'none'} model_calls={u['calls']} tool_calls={len(result.steps)}"
+        f" tokens in/out={u['in']}/{u['out']} latency={result.latency_s:.1f}s wall={result.wall_s:.1f}s{trace}"
+    )
+
+
+def cmd_agent(args: argparse.Namespace) -> int:
+    if args.max_steps < 1:
+        print("--max-steps must be at least 1", file=sys.stderr)
+        return 2
+    try:
+        llm = _make_llm()
+    except SetupError as e:
+        print(e, file=sys.stderr)
+        return 1
+    path = _existing_db(args.data)
+    if path is None:
+        return 1
+    progress = sys.stderr if args.json else sys.stdout  # --json keeps standard output for the JSON alone
+
+    def show(step: Step) -> None:
+        for line in _step_lines(step):
+            print(line, file=progress, flush=True)
+
+    with Store(path) as store:
+        try:
+            dense, embedder = _load_dense(store, path, args)
+        except LookupError:
+            return 1
+        retriever = functools.partial(retrieve, store=store, dense=dense, embedder=embedder)
+        try:
+            result = run_agent(
+                args.question,
+                llm=llm,
+                tools=default_tools(store, retriever, strategy=args.strategy),
+                max_steps=args.max_steps,
+                trace_dir=Path(args.data) / "traces",
+                models=_models(args.models),
+                declarations=tool_declarations(store.filings()),
+                on_step=show,
+            )
+        except Exception as e:  # quota, network: a message, not a traceback
+            print(f"no answer: {short_error(e)}", file=sys.stderr)
+            return 1
+    if args.json:
+        print(json.dumps(result.to_dict(), indent=2, ensure_ascii=False))
+    else:
+        _print_agent_result(result)
     return 0
 
 
@@ -353,6 +434,24 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--json", action="store_true", help="print the whole answer as JSON")
     p.add_argument("--data", default="data", help="data folder (default: data)")
     p.set_defaults(func=cmd_ask)
+
+    p = sub.add_parser(
+        "agent", help="answer a compound question with tools: filing search, daily closes (yfinance), Google News"
+    )
+    p.add_argument("question")
+    p.add_argument(
+        "--max-steps",
+        type=int,
+        default=DEFAULT_MAX_STEPS,
+        help=f"most rounds of tool calls, i.e. model replies that ask for tools (default: {DEFAULT_MAX_STEPS})",
+    )
+    p.add_argument("--strategy", choices=STRATEGIES, default="hybrid", help="filing search (default: hybrid)")
+    p.add_argument(
+        "--models", help=f"Gemini models to try in order, comma-separated (default: {','.join(AGENT_MODELS)})"
+    )
+    p.add_argument("--json", action="store_true", help="print the whole result as JSON (the steps go to stderr)")
+    p.add_argument("--data", default="data", help="data folder; traces are saved in <data>/traces (default: data)")
+    p.set_defaults(func=cmd_agent)
 
     args = parser.parse_args(argv)
     return args.func(args)

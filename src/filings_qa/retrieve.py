@@ -36,8 +36,10 @@ def retrieve(
     k: int = 8,
     ticker: str | None = None,
     form: str | None = None,
+    filed: str | None = None,
 ) -> list[Hit]:
-    """Top ``k`` chunks for ``query``, optionally only from one ticker and/or form.
+    """Top ``k`` chunks for ``query``, optionally only from one ticker, form and/or filing date (``filed``,
+    YYYY-MM-DD).
 
     ``bm25`` needs only the store. ``dense`` embeds the query with ``embedder`` (the one that built ``dense``) and
     searches ``dense``. ``hybrid`` takes the top ``2k`` of each and keeps the top ``k`` of their RRF fusion.
@@ -47,13 +49,13 @@ def retrieve(
     if k <= 0:
         return []
     if strategy == "bm25":
-        return store.bm25(query, k, ticker=ticker, form=form)
+        return store.bm25(query, k, ticker=ticker, form=form, filed=filed)
     if dense is None or embedder is None:
         raise ValueError(f"the {strategy} strategy needs a dense index and its embedder")
-    allowed = store.chunk_ids(ticker=ticker, form=form) if ticker or form else None
+    allowed = store.chunk_ids(ticker=ticker, form=form, filed=filed) if ticker or form or filed else None
     query_vec = embedder.embed([query])[0]
     if strategy == "dense":
         return dense.search(query_vec, k, allowed_ids=allowed)
-    keyword = store.bm25(query, 2 * k, ticker=ticker, form=form)
+    keyword = store.bm25(query, 2 * k, ticker=ticker, form=form, filed=filed)
     vector = dense.search(query_vec, 2 * k, allowed_ids=allowed)
     return rrf([keyword, vector])[:k]

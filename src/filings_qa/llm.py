@@ -159,24 +159,49 @@ def response_schema(config: Any) -> Any:
     return getattr(config, "response_schema", None)
 
 
+def is_function_call_reply(value: Any) -> bool:
+    """Whether a scripted reply (see ``fake_response``) asks for tool calls rather than giving JSON or text."""
+    return isinstance(value, dict) and ("function_call" in value or "function_calls" in value)
+
+
+def _fake_reply(parts: list[Any], meta: Any, **fields: Any) -> SimpleNamespace:
+    candidate = SimpleNamespace(content=SimpleNamespace(role="model", parts=parts), finish_reason="STOP")
+    return SimpleNamespace(candidates=[candidate], usage_metadata=meta, **fields)
+
+
 def fake_response(value: Any, config: Any = None, tokens: tuple[int, int] = (1000, 200)) -> SimpleNamespace:
-    """A stand-in for a Gemini response. A dict is the JSON the model returned: ``parsed`` is that dict validated by
-    the config's Pydantic ``response_schema`` (the dict itself without one) and ``text`` its JSON. A str is plain
-    text, with ``parsed`` None. ``usage_metadata`` reports ``tokens`` = (input, output)."""
+    """A stand-in for a Gemini response, with the attributes of a real one that this package reads: ``text``,
+    ``parsed``, ``function_calls``, ``candidates[0].content`` (role "model" and ``parts``, each with ``text``,
+    ``thought`` and ``function_call``), ``candidates[0].finish_reason`` and ``usage_metadata``.
+
+    A dict with the key "function_call" ({"name": ..., "args": {...}}, optionally "id") or "function_calls" (a list
+    of them, asked for together) is a reply that calls tools; an optional "text" key is text written alongside, and
+    ``text`` is None without it, as in the SDK. Any other dict is the JSON the model returned: ``parsed`` is that dict
+    validated by the config's Pydantic ``response_schema`` (the dict itself without one) and ``text`` its JSON. A str
+    is plain text, with ``parsed`` None. ``usage_metadata`` reports ``tokens`` = (input, output)."""
+    meta = SimpleNamespace(prompt_token_count=tokens[0], candidates_token_count=tokens[1], thoughts_token_count=0)
+    if is_function_call_reply(value):
+        scripted = value["function_calls"] if "function_calls" in value else [value["function_call"]]
+        calls = [SimpleNamespace(name=c["name"], args=dict(c.get("args") or {}), id=c.get("id")) for c in scripted]
+        text = value.get("text") or None
+        parts = [SimpleNamespace(text=text, thought=None, function_call=None)] if text else []
+        parts += [SimpleNamespace(text=None, thought=None, function_call=call) for call in calls]
+        return _fake_reply(parts, meta, parsed=None, text=text, function_calls=calls)
     if isinstance(value, dict):
         schema = response_schema(config)
         is_model = isinstance(schema, type) and issubclass(schema, BaseModel)
         parsed, text = (schema.model_validate(value) if is_model else value), json.dumps(value)
     else:
         parsed, text = None, str(value)
-    meta = SimpleNamespace(prompt_token_count=tokens[0], candidates_token_count=tokens[1], thoughts_token_count=0)
-    return SimpleNamespace(parsed=parsed, text=text, usage_metadata=meta)
+    part = SimpleNamespace(text=text, thought=None, function_call=None)
+    return _fake_reply([part], meta, parsed=parsed, text=text, function_calls=None)
 
 
 class FakeLLM(Gemini):
     """Scripted stand-in for tests, without network or key. Each call pops the next item of ``script``: a dict or str
-    becomes the response (see ``fake_response``), an exception is raised. ``prompts`` keeps the ``contents`` of every
-    call and ``calls`` all its arguments. Every call reports ``tokens`` and takes ``latency`` seconds."""
+    becomes the response (see ``fake_response``; {"function_call": {"name": ..., "args": {...}}} asks for a tool
+    call), an exception is raised. ``prompts`` keeps the ``contents`` of every call and ``calls`` all its arguments.
+    Every call reports ``tokens`` and takes ``latency`` seconds."""
 
     def __init__(self, script: Sequence[Any], *, tokens: tuple[int, int] = (1000, 200), latency: float = 0.0):
         self.script = list(script)

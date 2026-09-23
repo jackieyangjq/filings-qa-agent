@@ -58,6 +58,19 @@ def test_re_adding_a_filing_replaces_its_chunks_in_the_index(store, sample_filin
     store.conn.execute("INSERT INTO chunks_fts (chunks_fts, rank) VALUES ('integrity-check', 1)")
 
 
+def test_filters_by_filing_date_and_the_list_of_filings(store):
+    assert [h.chunk_id for h in store.bm25("revenue growth", k=10, filed="2024-02-16")] == ["OTHR-10-K-20240216-7-001"]
+    assert store.bm25("revenue growth", k=10, ticker="ACME", filed="2024-02-16") == []
+    assert store.chunk_ids(filed="2024-02-16") == ["OTHR-10-K-20240216-7-001"]
+    assert len(store.chunk_ids(ticker="ACME", filed="2024-08-02")) == 6
+    assert store.filings() == [
+        {"filing_key": "ACME-10-Q-20240802", "ticker": "ACME", "form": "10-Q", "filed": "2024-08-02",
+         "period": "2024-06-29"},
+        {"filing_key": "OTHR-10-K-20240216", "ticker": "OTHR", "form": "10-K", "filed": "2024-02-16",
+         "period": "2024-06-29"},
+    ]
+
+
 def test_chunk_ids_by_ticker_and_form(store):
     acme = [f"ACME-10-Q-20240802-{item}" for item in ("2-001", "2-002", "1A-001", "3-001", "4-001", "5-001")]
     assert store.chunk_ids(ticker="acme") == acme  # in insertion order

@@ -1,9 +1,11 @@
 import json
 import re
+from datetime import date
+from pathlib import Path
 
 import pytest
 
-from filings_qa import cli, edgar
+from filings_qa import cli, edgar, tools
 from filings_qa.chunk import Chunk
 from filings_qa.edgar import Response
 from filings_qa.llm import FakeLLM
@@ -261,4 +263,90 @@ def test_ask_without_a_key_or_with_a_failing_model(tmp_path, store, fake_llm, mo
     assert cli.main(["ask", "revenue", "--strategy", "bm25", "--data", str(tmp_path)]) == 1
     assert "no answer: quota or rate limit exceeded (HTTP 429)" in capsys.readouterr().err
     assert cli.main(["ask", "revenue", "--strategy", "dense", "--data", str(tmp_path)]) == 1  # no vectors yet
+    assert "filings-qa index" in capsys.readouterr().err
+
+
+AGENT_USAGE = re.compile(
+    r"^model=(\S+) model_calls=(\d+) tool_calls=(\d+) tokens in/out=(\d+)/(\d+) latency=(\d+\.\d)s"
+    r" wall=(\d+\.\d)s trace=(\S+)$"
+)
+
+
+def _call(name, **args):
+    return {"function_call": {"name": name, "args": args}}
+
+
+@pytest.fixture
+def fake_prices(monkeypatch):
+    """Closes of 100 and 104 for whatever is asked, instead of yfinance; returns the requests."""
+    asked = []
+
+    def closes(ticker, start, end):
+        asked.append((ticker, start, end))
+        return [(date(2024, 8, 2), 100.0), (date(2024, 8, 9), 104.0)]
+
+    monkeypatch.setattr(tools, "yfinance_closes", closes)
+    return asked
+
+
+def test_agent_prints_each_step_then_the_answer_and_usage(tmp_path, store, fake_llm, fake_prices, capsys):
+    data = str(tmp_path)
+    assert cli.main(["index", "--fake", "--data", data]) == 0
+    capsys.readouterr()
+    answer = f"ACME said data center revenue growth was strong [{GROWTH}]."
+    llm = fake_llm(
+        _call("search_filings", query="data center revenue growth", ticker="ACME", k=2),
+        _call("get_price", ticker="ACME", start="2024-08-02", end="2024-08-09"),
+        answer,
+        tokens=(3000, 100),
+        latency=0.25,
+    )
+    assert cli.main(["agent", "How did ACME's data center business do?", "--data", data]) == 0
+    lines = capsys.readouterr().out.splitlines()
+    assert lines[0] == '→ search_filings(query="data center revenue growth", ticker="ACME", k=2)'
+    assert lines[1].startswith(f"  2 passages: {GROWTH}, ACME-10-Q-20240802-")  # k=2, only ACME
+    assert lines[2:4] == [
+        '→ get_price(ticker="ACME", start="2024-08-02", end="2024-08-09")',
+        "  2 closes: 2024-08-02 100.00 to 2024-08-09 104.00 (+4.0%)",
+    ]
+    assert lines[4:7] == ["", answer, ""]
+    m = AGENT_USAGE.match(lines[7])
+    assert m and m.groups()[:5] == ("gemini-3.5-flash-lite", "3", "2", "9000", "300") and len(lines) == 8
+    assert fake_prices == [("ACME", date(2024, 8, 2), date(2024, 8, 9))]
+    trace = Path(m[8])
+    assert trace.parent == tmp_path / "traces" and json.loads(trace.read_text())["final_answer"] == answer
+    search = llm.calls[0]["config"]["tools"][0]["function_declarations"][0]
+    assert search["description"].endswith(": ACME: 10-Q 2024-08-02; OTHR: 10-K 2024-02-16.")  # the stored filings
+    passages = llm.prompts[1][-1]["parts"][0]["function_response"]["response"]["output"]
+    assert passages[0]["chunk_id"] == GROWTH and passages[0]["ticker"] == "ACME"  # searched in the real store
+
+
+def test_agent_json_notes_truncation_and_errors(tmp_path, store, fake_llm, fake_prices, capsys):
+    data = str(tmp_path)
+    price = _call("get_price", ticker="ACME", start="2024-08-02", end="2024-08-09")
+    fake_llm(price, price, "Up 4.0% [get_price ACME 2024-08-02 to 2024-08-09].")
+    args = ["agent", "How did ACME move?", "--max-steps", "1", "--strategy", "bm25", "--json", "--data", data]
+    assert cli.main(args) == 0
+    captured = capsys.readouterr()
+    result = json.loads(captured.out)
+    assert result["truncated"] is True and [s["tool"] for s in result["steps"]] == ["get_price"]
+    assert result["final_answer"] == "Up 4.0% [get_price ACME 2024-08-02 to 2024-08-09]."
+    assert result["usage"]["calls"] == 3 and Path(result["trace_path"]).exists()
+    assert captured.err.startswith('→ get_price(ticker="ACME"')  # the steps go to stderr with --json
+
+    fake_llm(price, "Answer.")
+    assert cli.main(["agent", "q", "--max-steps", "1", "--strategy", "bm25", "--data", data]) == 0
+    assert "Note:" not in capsys.readouterr().out  # one round of tool calls, then an answer
+
+    fake_llm(price, price, "Up.")
+    assert cli.main(["agent", "q", "--max-steps", "1", "--strategy", "bm25", "--data", data]) == 0
+    assert "Note: the model still wanted tools after 1 round of tool calls" in capsys.readouterr().out
+
+    assert cli.main(["agent", "q", "--max-steps", "0", "--data", data]) == 2
+    error = Exception("quota")
+    error.code = 429
+    fake_llm(error)
+    assert cli.main(["agent", "q", "--strategy", "bm25", "--data", data]) == 1
+    assert "no answer: quota or rate limit exceeded (HTTP 429)" in capsys.readouterr().err
+    assert cli.main(["agent", "q", "--data", data]) == 1  # hybrid needs vectors: none were built
     assert "filings-qa index" in capsys.readouterr().err

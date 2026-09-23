@@ -148,8 +148,11 @@ class Store:
         row = self.conn.execute("SELECT * FROM filings WHERE filing_key = ?", (filing_key,)).fetchone()
         return dict(row) if row else None
 
-    def bm25(self, query: str, k: int = 8, ticker: str | None = None, form: str | None = None) -> list[Hit]:
-        """Top ``k`` chunks for ``query`` by FTS5's BM25, optionally only from one ticker and/or form."""
+    def bm25(
+        self, query: str, k: int = 8, ticker: str | None = None, form: str | None = None, filed: str | None = None
+    ) -> list[Hit]:
+        """Top ``k`` chunks for ``query`` by FTS5's BM25, optionally only from one ticker, form and/or filing date
+        (``filed`` as YYYY-MM-DD)."""
         match = fts_query(query)
         if not match or k <= 0:
             return []
@@ -164,16 +167,25 @@ class Store:
         if form:
             sql += " AND f.form = ?"
             params.append(form.upper())
+        if filed:
+            sql += " AND f.filed = ?"
+            params.append(filed)
         sql += " ORDER BY bm25(chunks_fts) LIMIT ?"
         params.append(k)
         rows = self.conn.execute(sql, params).fetchall()
         return [Hit(r["chunk_id"], -r["s"], rank) for rank, r in enumerate(rows, start=1)]
 
+    def filings(self) -> list[dict[str, Any]]:
+        """Every stored filing (filing_key, ticker, form, filed, period), by ticker, newest first."""
+        sql = "SELECT filing_key, ticker, form, filed, period FROM filings ORDER BY ticker, filed DESC"
+        return [dict(r) for r in self.conn.execute(sql)]
+
     def all_chunk_ids(self) -> list[str]:
         return [r[0] for r in self.conn.execute("SELECT chunk_id FROM chunks ORDER BY rowid")]
 
-    def chunk_ids(self, ticker: str | None = None, form: str | None = None) -> list[str]:
-        """Ids of the chunks of the filings of ``ticker`` and/or of ``form`` (every chunk when both are None)."""
+    def chunk_ids(self, ticker: str | None = None, form: str | None = None, filed: str | None = None) -> list[str]:
+        """Ids of the chunks of the filings of ``ticker``, of ``form`` and/or filed on ``filed`` (YYYY-MM-DD); every
+        chunk when all are None."""
         sql = "SELECT c.chunk_id FROM chunks c JOIN filings f ON f.filing_key = c.filing_key WHERE 1 = 1"
         params: list[Any] = []
         if ticker:
@@ -182,6 +194,9 @@ class Store:
         if form:
             sql += " AND f.form = ?"
             params.append(form.upper())
+        if filed:
+            sql += " AND f.filed = ?"
+            params.append(filed)
         return [r[0] for r in self.conn.execute(sql + " ORDER BY c.rowid", params)]
 
     def stats(self) -> dict[str, Any]:

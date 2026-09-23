@@ -138,3 +138,22 @@ def test_recorded_llm_replays_by_label():
     assert llm.usage == {"m1": [2, 2000, 400]}
     with pytest.raises(KeyError):
         llm.generate(["m1"], label="never recorded")
+
+
+def test_fake_llm_scripts_tool_calls_shaped_like_gemini_responses():
+    both = {"function_calls": [{"name": "a", "args": {}}, {"name": "b", "args": {"x": 1}, "id": "c2"}], "text": "Two."}
+    llm = FakeLLM([{"function_call": {"name": "get_price", "args": {"ticker": "ACME"}}}, both, "Done."])
+    resp, model = llm.generate(["m1"], contents="x")
+    assert model == "m1" and resp.text is None and resp.parsed is None  # as the SDK, no text without a text part
+    assert [(c.name, c.args, c.id) for c in resp.function_calls] == [("get_price", {"ticker": "ACME"}, None)]
+    candidate = resp.candidates[0]
+    assert candidate.content.role == "model" and candidate.finish_reason == "STOP"
+    assert [p.function_call for p in candidate.content.parts] == resp.function_calls
+
+    resp = llm.ask(["m1"], contents="y")
+    assert resp.text == "Two." and [(c.name, c.id) for c in resp.function_calls] == [("a", None), ("b", "c2")]
+    assert [p.text for p in resp.candidates[0].content.parts] == ["Two.", None, None]
+    assert llm.usage == {"m1": [1, 1000, 200]}
+
+    resp, _ = llm.generate(["m1"], contents="z")
+    assert resp.function_calls is None and resp.candidates[0].content.parts[0].text == "Done."

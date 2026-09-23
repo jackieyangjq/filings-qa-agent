@@ -100,6 +100,12 @@ def test_ticker_and_form_filters_apply_to_every_strategy(indexes):
         assert acme and all(i.startswith(ACME) for i in acme)
 
 
+def test_the_filing_date_filter_applies_to_every_strategy(indexes):
+    for strategy in ("bm25", "dense", "hybrid"):
+        assert _ids(retrieve(QUERY, strategy=strategy, k=5, filed="2024-02-16", **indexes)) == [OTHR_7]
+        assert retrieve(QUERY, strategy=strategy, k=5, ticker="ACME", filed="2024-02-16", **indexes) == []
+
+
 def test_hybrid_with_the_fake_embedder_returns_k_distinct_chunks(store, tmp_path):
     embedder = FakeEmbedder()
     dense = DenseIndex.build(store, embedder, tmp_path / "index")

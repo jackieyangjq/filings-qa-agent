@@ -7,7 +7,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from filings_qa import edgar
+from filings_qa import edgar, tools
 from filings_qa.chunk import Chunk
 from filings_qa.embed import FakeEmbedder
 from filings_qa.llm import Gemini, SetupError
@@ -35,6 +35,18 @@ def no_llm_requests(monkeypatch):
         raise SetupError(f"unexpected Gemini request in a test: {model}")
 
     monkeypatch.setattr(Gemini, "_call", refuse)
+
+
+@pytest.fixture(autouse=True)
+def no_tool_network(monkeypatch):
+    """Tests never fetch prices or news: a test passes its own ``closes`` or ``fetch`` to the tool, or replaces
+    ``tools.yfinance_closes`` / ``tools.http_get`` itself."""
+
+    def refuse(*args, **kwargs):
+        raise AssertionError(f"unexpected network request in a test: {args}")
+
+    monkeypatch.setattr(tools, "yfinance_closes", refuse)
+    monkeypatch.setattr(tools, "http_get", refuse)
 
 
 @pytest.fixture(autouse=True)
