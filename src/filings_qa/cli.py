@@ -13,7 +13,15 @@ import yaml
 
 from . import edgar
 from .chunk import chunk_filing
-from .embed import DEFAULT_MODEL, VECTORS_FILE, DenseIndex, FakeEmbedder, FastEmbedEmbedder, embedder_from_spec
+from .embed import (
+    DEFAULT_MODEL,
+    VECTORS_FILE,
+    DenseIndex,
+    FakeEmbedder,
+    FastEmbedEmbedder,
+    embedder_from_spec,
+    models_dir,
+)
 from .parse import html_to_text, split_items
 from .retrieve import STRATEGIES, retrieve
 from .store import Store, db_path
@@ -136,7 +144,7 @@ def cmd_index(args: argparse.Namespace) -> int:
     path = _existing_db(args.data)
     if path is None:
         return 1
-    embedder = FakeEmbedder() if args.fake else FastEmbedEmbedder(args.model)
+    embedder = FakeEmbedder() if args.fake else FastEmbedEmbedder(args.model, cache_dir=models_dir(args.data))
     label = f"hashed bag-of-words vectors ({embedder.dim} dimensions, for tests and demos)" if args.fake else args.model
     started = last = time.perf_counter()
 
@@ -192,7 +200,7 @@ def cmd_search(args: argparse.Namespace) -> int:
         if args.strategy != "bm25":
             try:
                 dense = DenseIndex.load(path.parent)
-                embedder = embedder_from_spec(dense.embedder_spec)
+                embedder = embedder_from_spec(dense.embedder_spec, cache_dir=models_dir(args.data))
             except (FileNotFoundError, ValueError) as e:  # no index, a damaged one, or an unknown embedder
                 print(f"{e} (or search without vectors: --strategy bm25)", file=sys.stderr)
                 return 1
@@ -232,7 +240,9 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--data", default="data", help="data folder (default: data)")
     p.set_defaults(func=cmd_stats)
 
-    p = sub.add_parser("index", help="embed every chunk for dense and hybrid search (downloads the model on first use)")
+    p = sub.add_parser(
+        "index", help="embed every chunk for dense and hybrid search (the model is downloaded to <data>/models once)"
+    )
     p.add_argument("--data", default="data", help="data folder (default: data)")
     which = p.add_mutually_exclusive_group()
     which.add_argument("--model", default=DEFAULT_MODEL, help=f"fastembed model (default: {DEFAULT_MODEL})")

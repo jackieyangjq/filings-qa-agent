@@ -141,6 +141,14 @@ def test_fastembed_is_loaded_once_on_first_use_with_batches_of_64(fake_fastembed
     np.testing.assert_allclose(np.linalg.norm(vectors, axis=1), 1.0, rtol=1e-6)  # the fake returns length 3
 
 
+def test_fastembed_model_cache_folder(fake_fastembed, tmp_path, monkeypatch):
+    FastEmbedEmbedder("test/model").embed(["x"])  # fastembed's own default (the system temp folder)
+    FastEmbedEmbedder("test/model", cache_dir=tmp_path / "models").embed(["x"])
+    monkeypatch.setenv("FASTEMBED_CACHE_PATH", str(tmp_path / "chosen"))
+    FastEmbedEmbedder("test/model", cache_dir=tmp_path / "models").embed(["x"])  # the environment variable wins
+    assert [m.cache_dir for m in fake_fastembed] == [None, str(tmp_path / "models"), str(tmp_path / "chosen")]
+
+
 def test_fastembed_not_installed_gives_the_install_command():
     embedder = FastEmbedEmbedder()  # `import fastembed` fails in tests (conftest)
     with pytest.raises(RuntimeError, match=r"pip install"):
@@ -149,7 +157,7 @@ def test_fastembed_not_installed_gives_the_install_command():
 
 def test_embedder_from_spec_rebuilds_the_embedder_of_an_index(fake_fastembed):
     assert embedder_from_spec(FakeEmbedder(dim=32).spec).embed(["x"]).shape == (1, 32)
-    embedder_from_spec(FastEmbedEmbedder("test/model-b").spec).embed(["x"])
-    assert [m.model_name for m in fake_fastembed] == ["test/model-b"]
+    embedder_from_spec(FastEmbedEmbedder("test/model-b").spec, cache_dir="cache").embed(["x"])
+    assert [(m.model_name, m.cache_dir) for m in fake_fastembed] == [("test/model-b", "cache")]
     with pytest.raises(ValueError, match="stub"):
         embedder_from_spec({"kind": "stub"})

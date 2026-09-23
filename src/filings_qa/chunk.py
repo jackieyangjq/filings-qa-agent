@@ -1,4 +1,11 @@
-"""Split section text into chunks of about 400 words that overlap by 60 words and never cross a section boundary."""
+"""Split section text into chunks of about 280 words that overlap by 50 words and never cross a section boundary.
+
+Why 280 words: the embedding model behind dense search (bge-small-en-v1.5) reads at most 512 tokens of a text and
+ignores the rest. Filing text is token-heavy (numbers, tables and legal terms split into several tokens per word). On
+the 48-filing corpus, 400-word chunks had a median of 477 tokens and 37% of them ran past 512, so 9% of all tokens
+were invisible to dense search; 280-word chunks have a median of 329 tokens, 7% run past 512 and 1.5% of tokens are
+cut off.
+"""
 
 from __future__ import annotations
 
@@ -10,6 +17,9 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from .edgar import Filing
     from .parse import Section
+
+DEFAULT_TARGET_WORDS = 280
+DEFAULT_OVERLAP_WORDS = 50
 
 _WORD = re.compile(r"\S+")
 _SENTENCE_END = re.compile(r"(?<=[.!?;])\s+")
@@ -74,7 +84,9 @@ def _tail(pieces: list[str], n_words: int) -> list[str]:
     return out[::-1]
 
 
-def chunk_text(text: str, *, target_words: int = 400, overlap_words: int = 60) -> list[str]:
+def chunk_text(
+    text: str, *, target_words: int = DEFAULT_TARGET_WORDS, overlap_words: int = DEFAULT_OVERLAP_WORDS
+) -> list[str]:
     """Group the lines (paragraphs, table rows) of ``text`` into chunks of at most ``target_words`` words.
 
     Each chunk after the first starts with the last ``overlap_words`` words of the previous one. Lines longer than
@@ -104,7 +116,11 @@ def chunk_text(text: str, *, target_words: int = 400, overlap_words: int = 60) -
 
 
 def chunk_filing(
-    filing: Filing, sections: Iterable[Section], *, target_words: int = 400, overlap_words: int = 60
+    filing: Filing,
+    sections: Iterable[Section],
+    *,
+    target_words: int = DEFAULT_TARGET_WORDS,
+    overlap_words: int = DEFAULT_OVERLAP_WORDS,
 ) -> list[Chunk]:
     """Chunks of every section of ``filing``, numbered from 1 within each item."""
     chunks: list[Chunk] = []

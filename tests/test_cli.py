@@ -175,4 +175,5 @@ def test_search_embeds_the_query_with_the_model_that_built_the_index(tmp_path, s
     assert cli.main(["index", "--model", "test/model-a", "--data", data]) == 0
     assert cli.main(["search", "data center revenue growth", "--strategy", "dense", "--k", "1", "--data", data]) == 0
     assert [m.model_name for m in fake_fastembed] == ["test/model-a", "test/model-a"]  # index, then search
+    assert [m.cache_dir for m in fake_fastembed] == [str(tmp_path / "models")] * 2  # <data>/models
     assert len(_results(capsys.readouterr().out)) == 1

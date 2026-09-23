@@ -88,12 +88,15 @@ def store(tmp_path, sample_filing):
 def fake_fastembed(monkeypatch, no_model_download):
     """Stands in for the fastembed package, so no model is downloaded: ``TextEmbedding(model_name, ...)`` with the
     ``embedding_size`` property and ``embed(documents, batch_size=256, parallel=None)`` generator of the real class.
-    Its vectors are bag-of-words vectors times 3, as float64, i.e. not unit length. Returns the models created."""
+    Its vectors are bag-of-words vectors times 3, as float64, i.e. not unit length. Returns the models created, which
+    remember their ``model_name`` and ``cache_dir``. ``FASTEMBED_CACHE_PATH`` is unset for the test."""
     created = []
+    monkeypatch.delenv("FASTEMBED_CACHE_PATH", raising=False)
 
     class TextEmbedding:
         def __init__(self, model_name, cache_dir=None, threads=None, **kwargs):
             self.model_name = model_name
+            self.cache_dir = cache_dir
             self.batch_sizes = []
             created.append(self)
 

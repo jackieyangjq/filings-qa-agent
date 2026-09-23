@@ -4,13 +4,15 @@ An embedder turns texts into float32 rows of unit length. ``FastEmbedEmbedder`` 
 (BAAI/bge-small-en-v1.5 by default, no API key); ``FakeEmbedder`` hashes words and serves tests and the offline demo.
 
 The index lives in the index folder as ``embeddings.npy`` (one row per chunk), ``ids.json`` (the chunk id of each
-row) and ``embedder.json`` (the embedder that made the vectors, so that queries are embedded the same way).
+row) and ``embedder.json`` (the embedder that made the vectors, so that queries are embedded the same way). The
+command line keeps the downloaded model in ``<data>/models`` unless ``FASTEMBED_CACHE_PATH`` names another folder.
 """
 
 from __future__ import annotations
 
 import hashlib
 import json
+import os
 import re
 from collections.abc import Callable, Iterable, Sequence
 from pathlib import Path
@@ -27,6 +29,8 @@ DEFAULT_MODEL = "BAAI/bge-small-en-v1.5"
 VECTORS_FILE = "embeddings.npy"
 IDS_FILE = "ids.json"
 EMBEDDER_FILE = "embedder.json"
+MODELS_DIR = "models"  # model cache inside the data folder
+CACHE_ENV = "FASTEMBED_CACHE_PATH"
 
 _WORD = re.compile(r"[^\W_]+")
 
@@ -69,14 +73,21 @@ class FakeEmbedder:
         return normalize(out)
 
 
+def models_dir(data_dir: Path | str) -> Path:
+    """Where the command line keeps downloaded embedding models: ``<data>/models``."""
+    return Path(data_dir) / MODELS_DIR
+
+
 class FastEmbedEmbedder:
     """A local embedding model run by fastembed (install with ``pip install 'filings-qa-agent[embed]'``). The model
-    is loaded on the first ``embed`` call and downloaded then if needed, to fastembed's cache folder
-    (``FASTEMBED_CACHE_PATH``; by default ``fastembed_cache`` in the system temp folder)."""
+    is loaded on the first ``embed`` call and downloaded then if needed, to the folder named by the environment
+    variable ``FASTEMBED_CACHE_PATH`` if set, else to ``cache_dir``, else to fastembed's default (``fastembed_cache``
+    in the system temp folder, which the system may clean, forcing a new download)."""
 
-    def __init__(self, model_name: str = DEFAULT_MODEL, *, batch_size: int = 64):
+    def __init__(self, model_name: str = DEFAULT_MODEL, *, batch_size: int = 64, cache_dir: Path | str | None = None):
         self.model_name = model_name
         self.batch_size = batch_size
+        self.cache_dir = cache_dir
         self._model: Any = None
 
     @property
@@ -89,7 +100,8 @@ class FastEmbedEmbedder:
                 from fastembed import TextEmbedding
             except ImportError as e:
                 raise RuntimeError("fastembed is not installed: pip install 'filings-qa-agent[embed]'") from e
-            self._model = TextEmbedding(model_name=self.model_name)
+            cache = os.environ.get(CACHE_ENV) or self.cache_dir
+            self._model = TextEmbedding(model_name=self.model_name, cache_dir=str(cache) if cache else None)
         return self._model
 
     def embed(self, texts: list[str]) -> np.ndarray:
@@ -99,11 +111,12 @@ class FastEmbedEmbedder:
         return normalize(np.stack(list(model.embed(list(texts), batch_size=self.batch_size))))
 
 
-def embedder_from_spec(spec: dict[str, Any]) -> Embedder:
-    """The embedder described by ``spec`` (the content of ``embedder.json``), to embed queries for that index."""
+def embedder_from_spec(spec: dict[str, Any], *, cache_dir: Path | str | None = None) -> Embedder:
+    """The embedder described by ``spec`` (the content of ``embedder.json``), to embed queries for that index.
+    ``cache_dir`` is where a fastembed model is kept (see ``FastEmbedEmbedder``)."""
     kind = spec.get("kind")
     if kind == "fastembed":
-        return FastEmbedEmbedder(spec["model"])
+        return FastEmbedEmbedder(spec["model"], cache_dir=cache_dir)
     if kind == "fake":
         return FakeEmbedder(int(spec["dim"]))
     raise ValueError(f"cannot recreate the embedder {spec!r}; rebuild the index with `filings-qa index`")

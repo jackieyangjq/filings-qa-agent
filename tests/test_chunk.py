@@ -13,14 +13,14 @@ def _paragraphs(prefix: str, n_paragraphs: int, words_each: int) -> str:
     )
 
 
-def test_chunks_reach_about_400_words_and_overlap_by_60():
+def test_chunks_reach_about_280_words_and_overlap_by_50():
     chunks = chunk_text(_paragraphs("w", 40, 45))  # 1,800 words
     assert len(chunks) >= 4
     sizes = [len(c.split()) for c in chunks]
-    assert all(s <= 400 for s in sizes)
-    assert all(s > 300 for s in sizes[:-1])  # paragraphs are packed up to the target
+    assert all(s <= 280 for s in sizes)
+    assert all(s > 230 for s in sizes[:-1])  # paragraphs are packed up to the target
     for prev, nxt in zip(chunks, chunks[1:], strict=False):
-        assert prev.split()[-60:] == nxt.split()[:60]  # the end of one chunk opens the next
+        assert prev.split()[-50:] == nxt.split()[:50]  # the end of one chunk opens the next
     # nothing is lost: every word of the text appears in some chunk
     assert set(" ".join(chunks).split()) == set(_paragraphs("w", 40, 45).split())
 
@@ -30,10 +30,10 @@ def test_chunks_keep_paragraph_breaks_and_split_overlong_paragraphs():
     text = "Heading line\n" + long_paragraph + "\nClosing paragraph."
     chunks = chunk_text(text)
     assert chunks[0].startswith("Heading line\n")
-    assert all(len(c.split()) <= 400 for c in chunks)
+    assert all(len(c.split()) <= 280 for c in chunks)
     assert chunks[-1].endswith("\nClosing paragraph.")
     for prev, nxt in zip(chunks, chunks[1:], strict=False):
-        assert prev.split()[-60:] == nxt.split()[:60]
+        assert prev.split()[-50:] == nxt.split()[:50]
 
 
 def test_short_and_empty_text():
