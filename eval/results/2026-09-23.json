@@ -31,25 +31,25 @@
    "not_run": 0,
    "answerable": 40,
    "unanswerable": 10,
-   "recall_at_5": 0.775,
+   "recall_at_5": 0.75,
    "recall_at_10": 0.875,
-   "section_hit_at_5": 0.875,
+   "section_hit_at_5": 0.85,
    "correct": 0.95,
-   "partial": 0.025,
-   "incorrect": 0.025,
-   "citation_ok": 0.881,
-   "cited_sentences": 42,
-   "abstain_ok": 0.9,
-   "false_abstain": 0.025,
-   "avg_in_tokens": 4186.6,
-   "avg_out_tokens": 100.6,
-   "avg_latency_s": 1.07,
-   "est_cost_usd": 0.075374,
+   "partial": 0.0,
+   "incorrect": 0.05,
+   "citation_ok": 0.9474,
+   "cited_sentences": 38,
+   "abstain_ok": 1.0,
+   "false_abstain": 0.05,
+   "avg_in_tokens": 4186.4,
+   "avg_out_tokens": 93.7,
+   "avg_latency_s": 1.06,
+   "est_cost_usd": 0.074507,
    "dropped_sentences": 0,
-   "judge_calls": 39,
-   "judge_in_tokens": 13577,
-   "judge_out_tokens": 1507,
-   "judge_est_cost_usd": 0.007841
+   "judge_calls": 38,
+   "judge_in_tokens": 13191,
+   "judge_out_tokens": 1463,
+   "judge_est_cost_usd": 0.007615
   },
   "dense": {
    "questions": 50,
@@ -61,22 +61,22 @@
    "recall_at_5": 0.475,
    "recall_at_10": 0.575,
    "section_hit_at_5": 0.775,
-   "correct": 0.675,
+   "correct": 0.7,
    "partial": 0.0,
-   "incorrect": 0.325,
-   "citation_ok": 0.7742,
+   "incorrect": 0.3,
+   "citation_ok": 0.8065,
    "cited_sentences": 31,
    "abstain_ok": 1.0,
    "false_abstain": 0.25,
-   "avg_in_tokens": 4839.5,
-   "avg_out_tokens": 93.4,
+   "avg_in_tokens": 4850.5,
+   "avg_out_tokens": 93.7,
    "avg_latency_s": 1.02,
-   "est_cost_usd": 0.08427,
+   "est_cost_usd": 0.084468,
    "dropped_sentences": 0,
    "judge_calls": 30,
-   "judge_in_tokens": 10465,
-   "judge_out_tokens": 1129,
-   "judge_est_cost_usd": 0.005962
+   "judge_in_tokens": 10499,
+   "judge_out_tokens": 1130,
+   "judge_est_cost_usd": 0.005975
   },
   "hybrid": {
    "questions": 50,
@@ -85,25 +85,25 @@
    "not_run": 0,
    "answerable": 40,
    "unanswerable": 10,
-   "recall_at_5": 0.675,
+   "recall_at_5": 0.7,
    "recall_at_10": 0.85,
-   "section_hit_at_5": 0.825,
-   "correct": 0.875,
+   "section_hit_at_5": 0.85,
+   "correct": 0.9,
    "partial": 0.0,
-   "incorrect": 0.125,
-   "citation_ok": 0.8919,
+   "incorrect": 0.1,
+   "citation_ok": 0.9189,
    "cited_sentences": 37,
    "abstain_ok": 1.0,
    "false_abstain": 0.075,
-   "avg_in_tokens": 4464.3,
-   "avg_out_tokens": 93.7,
+   "avg_in_tokens": 4471.8,
+   "avg_out_tokens": 94.2,
    "avg_latency_s": 1.18,
-   "est_cost_usd": 0.078674,
+   "est_cost_usd": 0.07885,
    "dropped_sentences": 0,
    "judge_calls": 37,
-   "judge_in_tokens": 12826,
-   "judge_out_tokens": 1393,
-   "judge_est_cost_usd": 0.00733
+   "judge_in_tokens": 12887,
+   "judge_out_tokens": 1391,
+   "judge_est_cost_usd": 0.007344
   }
  },
  "items": [
@@ -694,30 +694,30 @@
   {
    "qid": "q14",
    "strategy": "bm25",
-   "question": "What is the approximate amount of H20 revenue NVIDIA generated under those licenses as of the date reported in the Q3 2026 Form 10-Q?",
+   "question": "As of the date of NVIDIA's Form 10-Q for the third quarter of fiscal 2026 (quarter ended October 26, 2025), approximately how much H20 revenue had NVIDIA generated under the H20 export licenses it had received?",
    "kind": "answerable",
    "answerable": true,
    "status": "done",
    "error": "",
    "cached": true,
    "ranking": [
-    "NVDA-10-K-20260225-1-029",
-    "NVDA-10-K-20260225-1A-064",
     "NVDA-10-Q-20251119-2-005",
     "NVDA-10-K-20260225-7-003",
-    "NVDA-10-Q-20251119-1A-032",
-    "NVDA-10-Q-20260520-1A-026",
-    "NVDA-10-Q-20251119-2-006",
-    "NVDA-10-Q-20260826-1A-015",
+    "NVDA-10-K-20260225-1-029",
+    "NVDA-10-K-20260225-1A-064",
     "NVDA-10-Q-20260520-1A-025",
-    "AAPL-10-Q-20260731-6-001"
+    "NVDA-10-Q-20251119-1A-028",
+    "NVDA-10-Q-20251119-1A-032",
+    "NVDA-10-Q-20251119-2-006",
+    "NVDA-10-K-20260225-1-028",
+    "NVDA-10-K-20260225-1A-063"
    ],
-   "rank": 3,
-   "section_rank": 3,
+   "rank": 1,
+   "section_rank": 1,
    "abstained": false,
    "sentences": [
     {
-     "text": "NVIDIA generated approximately $50 million in H20 revenue under those licenses as of the date reported in the Q3 2026 Form 10-Q.",
+     "text": "As of the date of NVIDIA's Form 10-Q for the third quarter of fiscal 2026, NVIDIA had generated approximately $50 million in H20 revenue under those licenses.",
      "citations": [
       "NVDA-10-Q-20251119-2-005"
      ]
@@ -725,16 +725,16 @@
    ],
    "dropped_sentences": 0,
    "verdict": "correct",
-   "reason": "The system's answer accurately matches the approximate H20 revenue mentioned in the reference answer and passage.",
+   "reason": "The system's answer accurately captures the revenue amount from the reference passage.",
    "cited_sentences": 1,
    "citation_ok_sentences": 1,
    "model": "gemini-3.5-flash-lite",
-   "tokens_in": 3342,
-   "tokens_out": 104,
-   "latency_s": 1.228,
+   "tokens_in": 3471,
+   "tokens_out": 110,
+   "latency_s": 1.124,
    "judge_model": "gemini-3.5-flash-lite",
-   "judge_tokens_in": 335,
-   "judge_tokens_out": 39
+   "judge_tokens_in": 366,
+   "judge_tokens_out": 33
   },
   {
    "qid": "q15",
@@ -1012,65 +1012,45 @@
   {
    "qid": "q21",
    "strategy": "bm25",
-   "question": "What was the total amount of letter of credit facilities for commercial and standby letters of credit at Costco?",
+   "question": "According to Costco's Form 10-K for fiscal 2025 (year ended August 31, 2025), what was the total amount of its letter of credit facilities for commercial and standby letters of credit?",
    "kind": "answerable",
    "answerable": true,
    "status": "done",
    "error": "",
    "cached": true,
    "ranking": [
+    "COST-10-Q-20251217-2-023",
+    "COST-10-Q-20260603-2-027",
     "JPM-10-Q-20260501-0-338",
+    "COST-10-Q-20260311-2-027",
+    "COST-10-Q-20260603-2-028",
+    "COST-10-Q-20260311-2-028",
+    "JPM-10-Q-20260806-0-382",
     "JPM-10-Q-20251104-0-387",
     "COST-10-K-20251008-7-020",
-    "JPM-10-Q-20260806-0-382",
-    "COST-10-Q-20260311-2-027",
-    "COST-10-Q-20260603-2-027",
-    "JPM-10-K-20260213-15-640",
-    "COST-10-Q-20251217-2-023",
-    "JPM-10-Q-20260806-0-381",
-    "AMZN-10-Q-20260731-1-044"
+    "JPM-10-K-20260213-15-640"
    ],
-   "rank": 3,
-   "section_rank": 3,
-   "abstained": false,
+   "rank": 9,
+   "section_rank": 9,
+   "abstained": true,
    "sentences": [
     {
-     "text": "Costco had letter of credit facilities, for commercial and standby letters of credit, totaling $224 at the end of 2025.",
-     "citations": [
-      "COST-10-K-20251008-7-020"
-     ]
-    },
-    {
-     "text": "Costco had letter of credit facilities, for commercial and standby letters of credit, totaling $227 at the end of the first quarter of 2026.",
-     "citations": [
-      "COST-10-Q-20251217-2-023"
-     ]
-    },
-    {
-     "text": "Costco had letter of credit facilities, for commercial and standby letters of credit, totaling $236 at the end of the second quarter of 2026.",
-     "citations": [
-      "COST-10-Q-20260311-2-027"
-     ]
-    },
-    {
-     "text": "Costco had letter of credit facilities, for commercial and standby letters of credit, totaling $242 at the end of the third quarter of 2026.",
-     "citations": [
-      "COST-10-Q-20260603-2-027"
-     ]
+     "text": "The provided SEC filing excerpts do not contain Costco's Form 10-K for fiscal 2025, so the total amount of its letter of credit facilities from that report is missing.",
+     "citations": []
     }
    ],
    "dropped_sentences": 0,
-   "verdict": "partial",
-   "reason": "The system includes the correct amount from the passage along with extraneous and unverified information for different periods.",
-   "cited_sentences": 4,
-   "citation_ok_sentences": 1,
+   "verdict": "incorrect",
+   "reason": "abstained",
+   "cited_sentences": 0,
+   "citation_ok_sentences": 0,
    "model": "gemini-3.5-flash-lite",
-   "tokens_in": 3949,
-   "tokens_out": 340,
-   "latency_s": 1.417,
-   "judge_model": "gemini-3.5-flash-lite",
-   "judge_tokens_in": 417,
-   "judge_tokens_out": 38
+   "tokens_in": 3666,
+   "tokens_out": 79,
+   "latency_s": 1.046,
+   "judge_model": "",
+   "judge_tokens_in": 0,
+   "judge_tokens_out": 0
   },
   {
    "qid": "q22",
@@ -2151,33 +2131,31 @@
   {
    "qid": "q46",
    "strategy": "bm25",
-   "question": "What is the approximate amount of H20 revenue NVIDIA generated under those licenses as of the date reported in the Q3 2019 Form 10-Q?",
+   "question": "In NVIDIA's Form 10-Q for the third quarter of fiscal 2019 (quarter ended October 28, 2018), approximately how much H20 revenue did NVIDIA report generating under export licenses?",
    "kind": "other_period",
    "answerable": false,
    "status": "done",
    "error": "",
    "cached": true,
    "ranking": [
-    "NVDA-10-K-20260225-1-029",
-    "NVDA-10-K-20260225-1A-064",
+    "AMD-10-K-20260204-15-011",
     "NVDA-10-Q-20251119-2-005",
     "NVDA-10-K-20260225-7-003",
-    "NVDA-10-Q-20251119-1A-032",
-    "NVDA-10-Q-20260520-1A-026",
-    "NVDA-10-Q-20251119-2-006",
-    "AMD-10-K-20260204-15-011",
-    "NVDA-10-Q-20260826-1A-015",
-    "TSLA-10-K-20260129-8-095"
+    "NVDA-10-Q-20251119-1A-028",
+    "NVDA-10-K-20260225-1-029",
+    "NVDA-10-K-20260225-1A-064",
+    "NVDA-10-Q-20260520-1A-025",
+    "NVDA-10-K-20260225-1-028",
+    "NVDA-10-K-20260225-1A-063",
+    "NVDA-10-Q-20260826-1A-014"
    ],
    "rank": null,
    "section_rank": null,
-   "abstained": false,
+   "abstained": true,
    "sentences": [
     {
-     "text": "NVIDIA generated approximately $50 million in H20 revenue under those licenses as of the date reported in the third quarter Form 10-Q filed on November 19, 2025.",
-     "citations": [
-      "NVDA-10-Q-20251119-2-005"
-     ]
+     "text": "The retrieved excerpts do not contain the answer to this question.",
+     "citations": []
     }
    ],
    "dropped_sentences": 0,
@@ -2186,9 +2164,9 @@
    "cited_sentences": 0,
    "citation_ok_sentences": 0,
    "model": "gemini-3.5-flash-lite",
-   "tokens_in": 3516,
-   "tokens_out": 111,
-   "latency_s": 1.043,
+   "tokens_in": 3662,
+   "tokens_out": 20,
+   "latency_s": 0.742,
    "judge_model": "",
    "judge_tokens_in": 0,
    "judge_tokens_out": 0
@@ -2953,30 +2931,30 @@
   {
    "qid": "q14",
    "strategy": "dense",
-   "question": "What is the approximate amount of H20 revenue NVIDIA generated under those licenses as of the date reported in the Q3 2026 Form 10-Q?",
+   "question": "As of the date of NVIDIA's Form 10-Q for the third quarter of fiscal 2026 (quarter ended October 26, 2025), approximately how much H20 revenue had NVIDIA generated under the H20 export licenses it had received?",
    "kind": "answerable",
    "answerable": true,
    "status": "done",
    "error": "",
    "cached": true,
    "ranking": [
-    "NVDA-10-K-20260225-7-016",
-    "NVDA-10-K-20260225-15-070",
-    "NVDA-10-Q-20260520-1-033",
+    "NVDA-10-K-20260225-15-048",
     "NVDA-10-Q-20260520-1-031",
-    "NVDA-10-Q-20260520-1-021",
+    "NVDA-10-K-20260225-15-070",
     "NVDA-10-Q-20251119-1-001",
-    "NVDA-10-Q-20260826-1-001",
     "NVDA-10-Q-20260520-1-001",
-    "NVDA-10-K-20260225-15-073",
-    "NVDA-10-K-20260225-15-009"
+    "NVDA-10-Q-20251119-1-036",
+    "NVDA-10-Q-20260826-1-001",
+    "NVDA-10-Q-20251119-1-020",
+    "NVDA-10-K-20260225-15-009",
+    "NVDA-10-K-20260225-7-016"
    ],
    "rank": null,
    "section_rank": null,
    "abstained": true,
    "sentences": [
     {
-     "text": "The excerpts do not contain information about the approximate amount of H20 revenue NVIDIA generated under licenses as of the date reported in the Q3 2026 Form 10-Q.",
+     "text": "The excerpts do not contain any information about H20 revenue generated under export licenses as of the date of NVIDIA's Form 10-Q for the third quarter of fiscal 2026.",
      "citations": []
     }
    ],
@@ -2986,9 +2964,9 @@
    "cited_sentences": 0,
    "citation_ok_sentences": 0,
    "model": "gemini-3.5-flash-lite",
-   "tokens_in": 6016,
-   "tokens_out": 78,
-   "latency_s": 1.132,
+   "tokens_in": 6502,
+   "tokens_out": 83,
+   "latency_s": 1.565,
    "judge_model": "",
    "judge_tokens_in": 0,
    "judge_tokens_out": 0
@@ -3262,47 +3240,47 @@
   {
    "qid": "q21",
    "strategy": "dense",
-   "question": "What was the total amount of letter of credit facilities for commercial and standby letters of credit at Costco?",
+   "question": "According to Costco's Form 10-K for fiscal 2025 (year ended August 31, 2025), what was the total amount of its letter of credit facilities for commercial and standby letters of credit?",
    "kind": "answerable",
    "answerable": true,
    "status": "done",
    "error": "",
    "cached": true,
    "ranking": [
-    "COST-10-K-20251008-7-020",
     "COST-10-Q-20251217-2-023",
-    "COST-10-Q-20251217-1-005",
-    "COST-10-K-20251008-8-013",
-    "COST-10-Q-20260311-2-027",
+    "COST-10-K-20251008-7-020",
     "COST-10-Q-20260603-2-027",
+    "COST-10-Q-20260311-2-027",
+    "COST-10-K-20251008-8-013",
+    "COST-10-Q-20251217-1-006",
+    "AMD-10-K-20260204-8-047",
     "JPM-10-Q-20251104-0-387",
-    "COST-10-Q-20260311-1-002",
-    "COST-10-K-20251008-2-001",
-    "COST-10-Q-20260603-1-002"
+    "GOOGL-10-Q-20260723-1-043",
+    "COST-10-Q-20260603-1-005"
    ],
-   "rank": 1,
-   "section_rank": 1,
+   "rank": 2,
+   "section_rank": 2,
    "abstained": false,
    "sentences": [
     {
-     "text": "Costco had letter of credit facilities totaling $242 at the end of the third quarter of 2026.",
+     "text": "Costco had letter of credit facilities, for commercial and standby letters of credit, totaling $224 for fiscal 2025.",
      "citations": [
-      "COST-10-Q-20260603-2-027"
+      "COST-10-K-20251008-7-020"
      ]
     }
    ],
    "dropped_sentences": 0,
-   "verdict": "incorrect",
-   "reason": "The system transposed the digits of the amount and incorrectly mentioned a future period not found in the passage.",
+   "verdict": "correct",
+   "reason": "The system's answer accurately provides the correct total amount of $224 million from the passage.",
    "cited_sentences": 1,
-   "citation_ok_sentences": 0,
+   "citation_ok_sentences": 1,
    "model": "gemini-3.5-flash-lite",
-   "tokens_in": 4131,
-   "tokens_out": 92,
-   "latency_s": 0.91,
+   "tokens_in": 3744,
+   "tokens_out": 95,
+   "latency_s": 0.899,
    "judge_model": "gemini-3.5-flash-lite",
-   "judge_tokens_in": 310,
-   "judge_tokens_out": 38
+   "judge_tokens_in": 344,
+   "judge_tokens_out": 39
   },
   {
    "qid": "q22",
@@ -4380,7 +4358,7 @@
   {
    "qid": "q46",
    "strategy": "dense",
-   "question": "What is the approximate amount of H20 revenue NVIDIA generated under those licenses as of the date reported in the Q3 2019 Form 10-Q?",
+   "question": "In NVIDIA's Form 10-Q for the third quarter of fiscal 2019 (quarter ended October 28, 2018), approximately how much H20 revenue did NVIDIA report generating under export licenses?",
    "kind": "other_period",
    "answerable": false,
    "status": "done",
@@ -4388,22 +4366,22 @@
    "cached": true,
    "ranking": [
     "NVDA-10-Q-20260520-1-031",
-    "NVDA-10-Q-20260520-1-033",
-    "NVDA-10-K-20260225-7-016",
     "NVDA-10-Q-20251119-1-001",
     "NVDA-10-K-20260225-15-070",
-    "NVDA-10-Q-20260520-1-001",
-    "NVDA-10-Q-20260520-1-021",
+    "NVDA-10-K-20260225-15-048",
     "NVDA-10-Q-20260826-1-001",
-    "NVDA-10-Q-20260520-1-032",
-    "NVDA-10-Q-20260520-1-014"
+    "NVDA-10-Q-20260520-1-001",
+    "NVDA-10-K-20260225-15-009",
+    "NVDA-10-Q-20260520-0-003",
+    "NVDA-10-Q-20260520-1-033",
+    "NVDA-10-Q-20260520-1-032"
    ],
    "rank": null,
    "section_rank": null,
    "abstained": true,
    "sentences": [
     {
-     "text": "The provided SEC filing excerpts do not contain any information regarding H20 revenue as of the date reported in the Q3 2019 Form 10-Q.",
+     "text": "The excerpts do not contain information regarding NVIDIA's Form 10-Q for the third quarter of fiscal 2019 or any H20 revenue reported under export licenses.",
      "citations": []
     }
    ],
@@ -4413,9 +4391,9 @@
    "cited_sentences": 0,
    "citation_ok_sentences": 0,
    "model": "gemini-3.5-flash-lite",
-   "tokens_in": 6016,
-   "tokens_out": 74,
-   "latency_s": 1.059,
+   "tokens_in": 6469,
+   "tokens_out": 79,
+   "latency_s": 0.922,
    "judge_model": "",
    "judge_tokens_in": 0,
    "judge_tokens_out": 0
@@ -5178,30 +5156,30 @@
   {
    "qid": "q14",
    "strategy": "hybrid",
-   "question": "What is the approximate amount of H20 revenue NVIDIA generated under those licenses as of the date reported in the Q3 2026 Form 10-Q?",
+   "question": "As of the date of NVIDIA's Form 10-Q for the third quarter of fiscal 2026 (quarter ended October 26, 2025), approximately how much H20 revenue had NVIDIA generated under the H20 export licenses it had received?",
    "kind": "answerable",
    "answerable": true,
    "status": "done",
    "error": "",
    "cached": true,
    "ranking": [
-    "NVDA-10-K-20260225-7-003",
-    "NVDA-10-K-20260225-1-029",
-    "NVDA-10-K-20260225-7-016",
-    "NVDA-10-K-20260225-1A-064",
-    "NVDA-10-K-20260225-15-070",
+    "NVDA-10-Q-20251119-1-020",
     "NVDA-10-Q-20251119-2-005",
-    "NVDA-10-Q-20260520-1-033",
+    "NVDA-10-K-20260225-15-048",
+    "NVDA-10-K-20260225-7-003",
     "NVDA-10-Q-20260520-1-031",
-    "NVDA-10-Q-20251119-1A-032",
-    "NVDA-10-Q-20260520-1-021"
+    "NVDA-10-K-20260225-1-029",
+    "NVDA-10-K-20260225-15-070",
+    "NVDA-10-K-20260225-1A-064",
+    "NVDA-10-Q-20251119-1-001",
+    "NVDA-10-Q-20260520-1A-025"
    ],
-   "rank": 6,
-   "section_rank": 6,
+   "rank": 2,
+   "section_rank": 2,
    "abstained": false,
    "sentences": [
     {
-     "text": "As of the date reported in the Q3 2026 Form 10-Q, NVIDIA generated approximately $50 million in H20 revenue under those licenses.",
+     "text": "As of October 26, 2025, NVIDIA had generated approximately $50 million in H20 revenue under the licenses granted in August 2025.",
      "citations": [
       "NVDA-10-Q-20251119-2-005"
      ]
@@ -5209,15 +5187,15 @@
    ],
    "dropped_sentences": 0,
    "verdict": "correct",
-   "reason": "The system accurately states the approximate H20 revenue amount from the reference answer and passage.",
+   "reason": "The system accurately provides the H20 revenue figure and matches the reference answer and passage.",
    "cited_sentences": 1,
    "citation_ok_sentences": 1,
    "model": "gemini-3.5-flash-lite",
-   "tokens_in": 4326,
-   "tokens_out": 104,
-   "latency_s": 1.021,
+   "tokens_in": 4498,
+   "tokens_out": 106,
+   "latency_s": 1.039,
    "judge_model": "gemini-3.5-flash-lite",
-   "judge_tokens_in": 336,
+   "judge_tokens_in": 361,
    "judge_tokens_out": 36
   },
   {
@@ -5492,47 +5470,47 @@
   {
    "qid": "q21",
    "strategy": "hybrid",
-   "question": "What was the total amount of letter of credit facilities for commercial and standby letters of credit at Costco?",
+   "question": "According to Costco's Form 10-K for fiscal 2025 (year ended August 31, 2025), what was the total amount of its letter of credit facilities for commercial and standby letters of credit?",
    "kind": "answerable",
    "answerable": true,
    "status": "done",
    "error": "",
    "cached": true,
    "ranking": [
+    "COST-10-Q-20251217-2-023",
+    "COST-10-Q-20260603-2-027",
+    "COST-10-Q-20260311-2-027",
     "COST-10-K-20251008-7-020",
     "JPM-10-Q-20251104-0-387",
-    "COST-10-Q-20251217-2-023",
-    "COST-10-Q-20260311-2-027",
-    "COST-10-Q-20260603-2-027",
     "JPM-10-Q-20260806-0-382",
+    "COST-10-Q-20260311-2-028",
+    "AMZN-10-Q-20260731-1-044",
     "JPM-10-Q-20260501-0-338",
-    "COST-10-Q-20251217-1-005",
-    "COST-10-K-20251008-8-013",
-    "JPM-10-K-20260213-15-640"
+    "COST-10-Q-20260603-2-028"
    ],
-   "rank": 1,
-   "section_rank": 1,
+   "rank": 4,
+   "section_rank": 4,
    "abstained": false,
    "sentences": [
     {
-     "text": "Costco had letter of credit facilities totaling $242 at the end of the third quarter of 2026.",
+     "text": "Costco had letter of credit facilities, for commercial and standby letters of credit, totaling $224 at the end of 2025.",
      "citations": [
-      "COST-10-Q-20260603-2-027"
+      "COST-10-K-20251008-7-020"
      ]
     }
    ],
    "dropped_sentences": 0,
-   "verdict": "incorrect",
-   "reason": "The system transposed the digits of the amount, stating $242 instead of $224.",
+   "verdict": "correct",
+   "reason": "The system correctly identified the total amount of letter of credit facilities as $224 million.",
    "cited_sentences": 1,
-   "citation_ok_sentences": 0,
+   "citation_ok_sentences": 1,
    "model": "gemini-3.5-flash-lite",
-   "tokens_in": 3812,
-   "tokens_out": 92,
-   "latency_s": 1.09,
+   "tokens_in": 3666,
+   "tokens_out": 97,
+   "latency_s": 0.85,
    "judge_model": "gemini-3.5-flash-lite",
-   "judge_tokens_in": 310,
-   "judge_tokens_out": 39
+   "judge_tokens_in": 346,
+   "judge_tokens_out": 37
   },
   {
    "qid": "q22",
@@ -6611,30 +6589,30 @@
   {
    "qid": "q46",
    "strategy": "hybrid",
-   "question": "What is the approximate amount of H20 revenue NVIDIA generated under those licenses as of the date reported in the Q3 2019 Form 10-Q?",
+   "question": "In NVIDIA's Form 10-Q for the third quarter of fiscal 2019 (quarter ended October 28, 2018), approximately how much H20 revenue did NVIDIA report generating under export licenses?",
    "kind": "other_period",
    "answerable": false,
    "status": "done",
    "error": "",
    "cached": true,
    "ranking": [
-    "NVDA-10-K-20260225-7-003",
-    "NVDA-10-K-20260225-1-029",
+    "AMD-10-K-20260204-15-011",
     "NVDA-10-Q-20260520-1-031",
-    "NVDA-10-K-20260225-1A-064",
-    "NVDA-10-Q-20260520-1-033",
     "NVDA-10-Q-20251119-2-005",
-    "NVDA-10-K-20260225-7-016",
     "NVDA-10-Q-20251119-1-001",
-    "NVDA-10-Q-20251119-1A-032",
-    "NVDA-10-K-20260225-15-070"
+    "NVDA-10-K-20260225-7-003",
+    "NVDA-10-K-20260225-15-070",
+    "NVDA-10-Q-20251119-1A-028",
+    "NVDA-10-K-20260225-15-048",
+    "NVDA-10-K-20260225-1-029",
+    "NVDA-10-Q-20260826-1-001"
    ],
    "rank": null,
    "section_rank": null,
    "abstained": true,
    "sentences": [
     {
-     "text": "The excerpts do not contain information for the third quarter of fiscal year 2019.",
+     "text": "The excerpts do not contain NVIDIA's Form 10-Q for the third quarter of fiscal 2019 or any information regarding H20 revenue for that period.",
      "citations": []
     }
    ],
@@ -6644,9 +6622,9 @@
    "cited_sentences": 0,
    "citation_ok_sentences": 0,
    "model": "gemini-3.5-flash-lite",
-   "tokens_in": 4543,
-   "tokens_out": 57,
-   "latency_s": 0.885,
+   "tokens_in": 4896,
+   "tokens_out": 75,
+   "latency_s": 1.006,
    "judge_model": "",
    "judge_tokens_in": 0,
    "judge_tokens_out": 0
