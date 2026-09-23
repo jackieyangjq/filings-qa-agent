@@ -2,7 +2,7 @@ import json
 
 import pytest
 
-from filings_qa.answer import ANSWER_MODELS, SYSTEM_PROMPT, Answer, AnswerSchema, answer
+from filings_qa.answer import ABSTAIN_REASON, ANSWER_MODELS, SYSTEM_PROMPT, Answer, AnswerSchema, answer
 from filings_qa.llm import FakeLLM
 from filings_qa.store import Hit
 
@@ -50,6 +50,19 @@ def test_abstention_keeps_the_explanation(store):
     assert (result.dropped_sentences, result.uncited_sentences) == (0, 1)
 
 
+def test_an_abstention_always_gives_a_reason(store):
+    """The prompt asks for the reason; when the model gives none, or only sentences that get dropped, a stock sentence
+    stands in, so the sentences (and the JSON of the answer) are never empty."""
+    assert "Never return an empty \"sentences\" list" in SYSTEM_PROMPT
+    made_up = reply(("Netflix had 300 million members.", ["NFLX-10-Q-X-1"]), abstained=True)
+    llm = FakeLLM([reply(abstained=True), made_up])
+    for _ in range(2):
+        result = answer("How many subscribers does Netflix have?", retriever=FakeRetriever(HITS), llm=llm, store=store)
+        assert result.abstained and result.to_dict()["sentences"] == [{"text": ABSTAIN_REASON, "citations": []}]
+        assert result.uncited_sentences == 1
+    assert result.dropped_sentences == 1  # the second reply's only sentence cited a chunk that was not shown
+
+
 def test_prompt_labels_every_chunk_with_its_id_and_filing(store):
     llm = FakeLLM([reply(("Revenue grew.", [GROWTH, OTHER]))])
     answer("What drove revenue growth?", retriever=FakeRetriever(HITS), llm=llm, store=store)
@@ -62,7 +75,8 @@ def test_prompt_labels_every_chunk_with_its_id_and_filing(store):
     assert prompt.endswith("Question: What drove revenue growth?")
     call = llm.calls[0]
     assert call["models"] == list(ANSWER_MODELS) and call["label"] == "answer:What drove revenue growth?"
-    assert call["config"]["temperature"] == 0 and call["config"]["response_schema"] is AnswerSchema
+    assert "temperature" not in call["config"]  # the model's default, as Google advises for Gemini 3
+    assert call["config"]["response_schema"] is AnswerSchema
     assert call["config"]["system_instruction"] == SYSTEM_PROMPT
     assert "investment advice" in SYSTEM_PROMPT and "abstained" in SYSTEM_PROMPT
 

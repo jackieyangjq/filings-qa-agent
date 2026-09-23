@@ -36,7 +36,13 @@ about the latest or most recent period, answer from the most recently filed exce
 excerpt may add context only if its sentence names the period it covers.
 5. If the excerpts do not contain the answer, set "abstained" to true and explain in one or two sentences what is \
 missing, without citations. If they answer only part of the question, answer that part and say what is missing.
-6. Never give investment advice or recommendations to buy, sell or hold, and do not predict prices."""
+6. An abstention still needs its reason: when "abstained" is true, "sentences" must hold at least one sentence, with \
+an empty "citations" list, saying what the excerpts lack (for example: "The excerpts do not give the company's \
+subscriber numbers."). Never return an empty "sentences" list.
+7. Never give investment advice or recommendations to buy, sell or hold, and do not predict prices."""
+
+# Stands in for the reason when the model abstains without giving one (or every sentence it gave was dropped).
+ABSTAIN_REASON = "The retrieved excerpts do not contain the answer to this question."
 
 
 class SentenceSchema(BaseModel):
@@ -46,7 +52,9 @@ class SentenceSchema(BaseModel):
 
 class AnswerSchema(BaseModel):
     abstained: bool = Field(description="True when the excerpts do not contain the answer.")
-    sentences: list[SentenceSchema]
+    sentences: list[SentenceSchema] = Field(
+        description="The answer, one sentence per item; when abstained is true, the reason, without citations."
+    )
 
 
 @dataclass
@@ -145,8 +153,9 @@ def answer(
     """Answer ``question`` from the top ``k`` chunks that ``retriever`` finds with ``strategy``.
 
     The chunk texts and their filings come from ``store``. ``models`` are tried in order (default
-    ``ANSWER_MODELS``), at temperature 0 with a JSON schema for the reply. When nothing is retrieved, the answer is
-    an abstention and no model is asked.
+    ``ANSWER_MODELS``) at their default temperature, which Google advises keeping for Gemini 3 models, with a JSON
+    schema for the reply. When nothing is retrieved, the answer is an abstention and no model is asked. An abstention
+    always has a sentence giving its reason: ``ABSTAIN_REASON`` when the model gave none.
     """
     started = time.perf_counter()
     hits = retriever(question, strategy=strategy, k=k)
@@ -166,7 +175,6 @@ def answer(
     filings = {key: store.get_filing(key) for key in dict.fromkeys(c.filing_key for c in chunks)}
     config = {
         "system_instruction": SYSTEM_PROMPT,
-        "temperature": 0,
         "response_mime_type": "application/json",
         "response_schema": AnswerSchema,
     }
@@ -190,5 +198,8 @@ def answer(
         model=model,
     )
     checked = verify_citations(raw, [c.chunk_id for c in chunks])
+    if checked.abstained and not checked.sentences:
+        checked.sentences = [Sentence(ABSTAIN_REASON)]
+        checked.uncited_sentences += 1
     checked.advice_hits = advice_check(checked.text)
     return checked
