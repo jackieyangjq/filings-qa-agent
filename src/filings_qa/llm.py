@@ -11,6 +11,7 @@ import functools
 import json
 import logging
 import os
+import re
 import sys
 import time
 from collections import defaultdict
@@ -24,12 +25,18 @@ API_KEY_ENV = "GEMINI_API_KEY"
 ATTEMPTS_PER_MODEL = 3  # the first request and two retries, after 30 s and 60 s
 RETRY_BASE_S = 30
 RETRY_CODES = (None, 500, 502, 503, 504)  # None: no HTTP status, e.g. a dropped connection
+QUOTA_WAITS_S = (60, 120)  # waits before the 2nd and 3rd try after a per-minute HTTP 429 that gives no delay
+MAX_QUOTA_WAIT_S = 300
 
 logging.getLogger("google_genai.models").setLevel(logging.ERROR)  # the SDK's notes about response parts
 
 
 class SetupError(RuntimeError):
     """Gemini cannot be used at all (no API key, SDK not installed). Never retried, and no other model is tried."""
+
+
+class DailyQuotaError(RuntimeError):
+    """Gemini refused a request because the model's daily quota is used up, so waiting a few minutes will not help."""
 
 
 def short_error(e: BaseException) -> str:
@@ -61,6 +68,34 @@ def with_retry(
             print(f"    {short_error(e)}; retrying in {wait} s", file=sys.stderr, flush=True)
             sleep(wait)
     raise ValueError("attempts must be at least 1")
+
+
+_RETRY_DELAY = re.compile(r"retryDelay['\"]?\s*:\s*['\"]?(\d+(?:\.\d+)?)s")
+
+
+def with_quota_wait(
+    fn: Callable[[], Any], waits: Sequence[float] = QUOTA_WAITS_S, *, sleep: Callable[[float], Any] = time.sleep
+):
+    """``fn()``, called again after a wait while it fails with HTTP 429 for a per-minute rate limit, at most
+    ``len(waits)`` more times. The wait is the delay Gemini asks for (its ``retryDelay``) plus a second, else the next
+    of ``waits``, and never more than ``MAX_QUOTA_WAIT_S``. A 429 for a daily quota (its quota id says "PerDay") raises
+    ``DailyQuotaError`` at once; any other error is raised as is. For long batch runs such as the evaluation;
+    ``Gemini.generate`` itself moves on to the next model after a 429."""
+    for i in range(len(waits) + 1):
+        try:
+            return fn()
+        except Exception as e:
+            if getattr(e, "code", None) != 429:
+                raise
+            if "PerDay" in str(e):
+                raise DailyQuotaError(f"the daily quota is used up: {short_error(e)}") from e
+            if i == len(waits):
+                raise
+            asked = _RETRY_DELAY.search(str(e))
+            wait = min(float(asked[1]) + 1 if asked else waits[i], MAX_QUOTA_WAIT_S)
+            print(f"    rate limited (HTTP 429); trying again in {wait:.0f} s", file=sys.stderr, flush=True)
+            sleep(wait)
+    raise AssertionError("unreachable")
 
 
 def model_list(models: str | Sequence[str]) -> list[str]:

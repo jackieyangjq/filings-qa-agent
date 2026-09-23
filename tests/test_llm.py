@@ -1,7 +1,7 @@
 import pytest
 from pydantic import BaseModel
 
-from filings_qa.llm import FakeLLM, Gemini, RecordedLLM, SetupError
+from filings_qa.llm import DailyQuotaError, FakeLLM, Gemini, RecordedLLM, SetupError, with_quota_wait
 
 
 class Err(Exception):
@@ -157,3 +157,46 @@ def test_fake_llm_scripts_tool_calls_shaped_like_gemini_responses():
 
     resp, _ = llm.generate(["m1"], contents="z")
     assert resp.function_calls is None and resp.candidates[0].content.parts[0].text == "Done."
+
+
+class Err429(Exception):
+    code = 429
+
+
+def failing(*errors):
+    """A function that raises ``errors`` in turn, then returns "ok"; ``calls`` counts the calls."""
+    queue = list(errors)
+
+    def fn():
+        fn.calls += 1
+        if queue:
+            raise queue.pop(0)
+        return "ok"
+
+    fn.calls = 0
+    return fn
+
+
+def test_quota_wait_waits_out_a_per_minute_limit():
+    waits = []
+    minute = Err429("429 RESOURCE_EXHAUSTED. {'quotaId': 'GenerateRequestsPerMinutePerProjectPerModel-FreeTier'}")
+    asked = Err429("429 RESOURCE_EXHAUSTED. [{'@type': 'google.rpc.RetryInfo', 'retryDelay': '41s'}]")
+    fn = failing(minute, asked)
+    assert with_quota_wait(fn, sleep=waits.append) == "ok"
+    assert fn.calls == 3 and waits == [60, 42.0]  # the default first wait, then the delay Gemini asked for plus one
+
+    fn = failing(minute, minute, minute)
+    with pytest.raises(Err429):
+        with_quota_wait(fn, sleep=waits.append)
+    assert fn.calls == 3  # the first try and two more
+
+
+def test_quota_wait_stops_at_a_daily_quota_and_passes_other_errors_on():
+    waits = []
+    fn = failing(Err429("{'quotaId': 'GenerateRequestsPerDayPerProjectPerModel-FreeTier'}"))
+    with pytest.raises(DailyQuotaError, match="daily quota"):
+        with_quota_wait(fn, sleep=waits.append)
+    fn = failing(Err(503))
+    with pytest.raises(Err):
+        with_quota_wait(fn, sleep=waits.append)
+    assert waits == [] and fn.calls == 1

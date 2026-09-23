@@ -1,4 +1,5 @@
-"""Command line entry point: ``filings-qa ingest``, ``stats``, ``index``, ``search``, ``ask`` and ``agent``."""
+"""Command line entry point: ``filings-qa ingest``, ``stats``, ``index``, ``search``, ``ask``, ``agent``,
+``evalset build`` and ``eval``."""
 
 from __future__ import annotations
 
@@ -8,12 +9,13 @@ import json
 import os
 import sys
 import time
+from datetime import date
 from pathlib import Path
 from typing import Any
 
 import yaml
 
-from . import edgar
+from . import edgar, evalset, evaluate
 from .agent import AGENT_MODELS, DEFAULT_MAX_STEPS, AgentResult, Step, rounds_text, run_agent
 from .answer import ANSWER_MODELS, Answer, answer
 from .chunk import chunk_filing
@@ -198,9 +200,15 @@ def _load_dense(store: Store, path: Path, args: argparse.Namespace) -> tuple[Den
     Raises LookupError after printing why they cannot be loaded."""
     if args.strategy == "bm25":
         return None, None
+    return _open_dense(store, path, args.data)
+
+
+def _open_dense(store: Store, path: Path, data: str) -> tuple[DenseIndex, Embedder]:
+    """The dense index next to ``path`` and the embedder for its queries (models kept in ``<data>/models``). Raises
+    LookupError after printing why they cannot be loaded."""
     try:
         dense = DenseIndex.load(path.parent)
-        embedder = embedder_from_spec(dense.embedder_spec, cache_dir=models_dir(args.data))
+        embedder = embedder_from_spec(dense.embedder_spec, cache_dir=models_dir(data))
     except (FileNotFoundError, ValueError) as e:  # no index, a damaged one, or an unknown embedder
         print(f"{e} (or search without vectors: --strategy bm25)", file=sys.stderr)
         raise LookupError from e
@@ -390,6 +398,142 @@ def cmd_agent(args: argparse.Namespace) -> int:
     return 0
 
 
+def _counts(values: list[str]) -> str:
+    """The tally of ``values``, most frequent first: AAPL 4, AMD 3, ..."""
+    tally: dict[str, int] = {}
+    for value in values:
+        tally[value] = tally.get(value, 0) + 1
+    return ", ".join(f"{v} {n}" for v, n in sorted(tally.items(), key=lambda item: (-item[1], item[0])))
+
+
+def cmd_evalset_build(args: argparse.Namespace) -> int:
+    out = Path(args.out)
+    if out.exists() and not args.force:
+        print(f"{out} exists and may hold reviewed questions; add --force to replace it", file=sys.stderr)
+        return 1
+    try:
+        llm = _make_llm()
+    except SetupError as e:
+        print(e, file=sys.stderr)
+        return 1
+    path = _existing_db(args.data)
+    if path is None:
+        return 1
+    cache_dir = Path(args.data) / "cache" / "evalset"
+    with Store(path) as store:
+        try:
+            questions = evalset.build(
+                store,
+                llm,
+                n_answerable=args.answerable,
+                n_unanswerable=args.unanswerable,
+                seed=args.seed,
+                models=_models(args.models),
+                cache_dir=cache_dir,
+                log=lambda line: print(line, flush=True),
+            )
+        except Exception as e:  # quota, network: the replies so far are cached, so a rerun goes on from there
+            print(f"stopped: {short_error(e)}; replies so far are kept in {cache_dir}, run again", file=sys.stderr)
+            return 1
+    evalset.save(questions, out)
+    answerable = [q for q in questions if q.answerable]
+    kinds = [q.stratum.split("/", 1)[1] if q.ticker not in evalset.BY_FILING else "by filing" for q in answerable]
+    print(f"wrote {len(questions)} questions to {out}")
+    print(
+        f"  answerable: {len(answerable)} (companies: {_counts([q.ticker for q in answerable])};"
+        f" sections: {_counts(kinds)})"
+    )
+    unanswerable = [q.kind for q in questions if not q.answerable]
+    print(f"  unanswerable: {len(unanswerable)} ({_counts(unanswerable)})")
+    if llm.usage:
+        print(llm.usage_text())
+    short = len(answerable) < args.answerable or len(unanswerable) < args.unanswerable
+    if short:
+        print("fewer questions than asked for: the strata ran out of usable chunks", file=sys.stderr)
+    return 1 if short else 0
+
+
+def _print_record(record: evaluate.Record, position: int, total: int) -> None:
+    head = f"[{record.strategy} {position}/{total}] {record.qid}"
+    if record.status != "done":
+        print(f"{head} {record.status}{': ' + record.error if record.error else ''}", flush=True)
+        return
+    if record.answerable:
+        found = f"gold at {record.rank}" if record.rank else "gold not retrieved"
+        outcome = f"{found}, {record.verdict}" + (" (abstained)" if record.abstained else "")
+    else:
+        outcome = "abstained, as it should" if record.abstained else "answered, should have abstained"
+    print(f"{head} {outcome} ({'cached' if record.cached else f'{record.latency_s:.1f} s'})", flush=True)
+
+
+def cmd_eval(args: argparse.Namespace) -> int:
+    try:
+        questions = evalset.load(args.questions)
+    except FileNotFoundError:
+        print(f"no questions at {args.questions}; run `filings-qa evalset build` first", file=sys.stderr)
+        return 1
+    if args.limit:
+        questions = questions[: args.limit]
+    strategies = [s.strip() for s in args.strategies.split(",") if s.strip()]
+    unknown = [s for s in strategies if s not in STRATEGIES]
+    if unknown or not strategies:
+        print(f"unknown strategy {', '.join(unknown)}; use some of {', '.join(STRATEGIES)}", file=sys.stderr)
+        return 2
+    cache_dir = Path(args.data) / "cache" / "eval"
+    llm: Gemini | None = None
+    if args.report_only:
+        results = evaluate.collect(questions, strategies, cache_dir=cache_dir, k=args.k)
+    else:
+        try:
+            llm = _make_llm()
+        except SetupError as e:
+            print(e, file=sys.stderr)
+            return 1
+        path = _existing_db(args.data)
+        if path is None:
+            return 1
+        with Store(path) as store:
+            dense: DenseIndex | None = None
+            embedder: Embedder | None = None
+            if any(s != "bm25" for s in strategies):
+                try:
+                    dense, embedder = _open_dense(store, path, args.data)
+                except LookupError:
+                    return 1
+            retriever = functools.partial(retrieve, store=store, dense=dense, embedder=embedder)
+            results = evaluate.run(
+                questions,
+                strategies,
+                retriever=retriever,
+                llm=llm,
+                judge_llm=llm,
+                store=store,
+                cache_dir=cache_dir,
+                k=args.k,
+                models=_models(args.models),
+                judge_models=_models(args.judge_models),
+                on_record=_print_record,
+            )
+    out = Path(args.out or Path("eval") / "results" / f"{date.today().isoformat()}.json")
+    out.parent.mkdir(parents=True, exist_ok=True)
+    data = {"date": date.today().isoformat(), "questions_file": str(args.questions), **results.to_dict()}
+    out.write_text(json.dumps(data, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
+    print()
+    print(evaluate.report(results))
+    print()
+    print(f"wrote {out}")
+    if llm is not None and llm.usage:
+        print(llm.usage_text())
+    left = [r for r in results.records if r.status != "done"]
+    if left:
+        print(
+            f"{len(left)} of {len(results.records)} items are not done"
+            f"{' (' + results.stopped + ')' if results.stopped else ''}; run the same command again to finish them",
+            file=sys.stderr,
+        )
+    return 1 if left else 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="filings-qa", description="Question answering over SEC 10-K/10-Q filings.")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -452,6 +596,38 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--json", action="store_true", help="print the whole result as JSON (the steps go to stderr)")
     p.add_argument("--data", default="data", help="data folder; traces are saved in <data>/traces (default: data)")
     p.set_defaults(func=cmd_agent)
+
+    p = sub.add_parser("evalset", help="the evaluation questions")
+    evalset_sub = p.add_subparsers(dest="evalset_command", required=True)
+    p = evalset_sub.add_parser(
+        "build",
+        help="write evaluation questions: facts drawn from sampled chunks, plus questions the corpus cannot answer",
+    )
+    p.add_argument("--answerable", type=int, default=40, help="questions drawn from chunks (default: 40)")
+    p.add_argument("--unanswerable", type=int, default=10, help="questions the corpus cannot answer (default: 10)")
+    p.add_argument("--seed", type=int, default=0, help="fixes which chunks are drawn (default: 0)")
+    p.add_argument("--models", help=f"Gemini models to try in order (default: {','.join(evalset.GENERATION_MODELS)})")
+    p.add_argument("--out", default="eval/questions.jsonl", help="(default: eval/questions.jsonl)")
+    p.add_argument("--force", action="store_true", help="replace the questions file if it exists")
+    p.add_argument("--data", default="data", help="data folder; replies are cached in <data>/cache/evalset")
+    p.set_defaults(func=cmd_evalset_build)
+
+    p = sub.add_parser(
+        "eval",
+        help="answer and grade every question with each strategy; finished items are cached and skipped next time",
+    )
+    p.add_argument("--strategies", default=",".join(STRATEGIES), help="comma-separated (default: bm25,dense,hybrid)")
+    p.add_argument("--limit", type=int, help="only the first N questions")
+    p.add_argument("--questions", default="eval/questions.jsonl", help="(default: eval/questions.jsonl)")
+    p.add_argument(
+        "--k", type=int, default=evaluate.K, help=f"chunks shown to the answer model (default: {evaluate.K})"
+    )
+    p.add_argument("--models", help=f"answer models to try in order (default: {','.join(evaluate.EVAL_MODELS)})")
+    p.add_argument("--judge-models", help=f"judge models (default: {','.join(evaluate.JUDGE_MODELS)})")
+    p.add_argument("--report-only", action="store_true", help="only summarize the cached items; no model is asked")
+    p.add_argument("--out", help="results JSON (default: eval/results/<today>.json)")
+    p.add_argument("--data", default="data", help="data folder; items are cached in <data>/cache/eval")
+    p.set_defaults(func=cmd_eval)
 
     args = parser.parse_args(argv)
     return args.func(args)
