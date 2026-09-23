@@ -172,6 +172,18 @@ class Store:
     def all_chunk_ids(self) -> list[str]:
         return [r[0] for r in self.conn.execute("SELECT chunk_id FROM chunks ORDER BY rowid")]
 
+    def chunk_ids(self, ticker: str | None = None, form: str | None = None) -> list[str]:
+        """Ids of the chunks of the filings of ``ticker`` and/or of ``form`` (every chunk when both are None)."""
+        sql = "SELECT c.chunk_id FROM chunks c JOIN filings f ON f.filing_key = c.filing_key WHERE 1 = 1"
+        params: list[Any] = []
+        if ticker:
+            sql += " AND f.ticker = ?"
+            params.append(ticker.upper())
+        if form:
+            sql += " AND f.form = ?"
+            params.append(form.upper())
+        return [r[0] for r in self.conn.execute(sql + " ORDER BY c.rowid", params)]
+
     def stats(self) -> dict[str, Any]:
         """Totals and per-ticker / per-form counts. ``words`` sums chunk lengths, so overlapping words count twice."""
         rows = self.conn.execute(

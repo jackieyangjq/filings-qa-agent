@@ -1,8 +1,10 @@
 import json
+import re
 
 import pytest
 
 from filings_qa import cli, edgar
+from filings_qa.chunk import Chunk
 from filings_qa.edgar import Response
 from filings_qa.store import Store, db_path
 
@@ -99,3 +101,78 @@ def test_only_unknown_ticker_and_stats_without_index(tmp_path, companies, capsys
     assert cli.main(["ingest", "--companies", str(companies), "--only", "NFLX"]) == 2
     assert cli.main(["stats", "--data", str(tmp_path / "empty")]) == 1
     assert not (tmp_path / "empty").exists()
+
+
+_RESULT = re.compile(r"^\s*(\d+)\.\s+(-?[\d.]+)\s+(\S+)\s+item (\S+)$")
+
+
+def _results(out):
+    """(rank, chunk id, item, preview) of each result printed by `search`; the preview is the line after."""
+    lines = out.splitlines()
+    found = []
+    for line, preview in zip(lines, lines[1:] + [""], strict=True):
+        m = _RESULT.match(line)
+        if m:
+            found.append((int(m[1]), m[3], m[4], preview.strip()))
+    return found
+
+
+def test_index_then_search_with_the_fake_embedder(tmp_path, store, capsys):
+    data = str(tmp_path)  # the `store` fixture is tmp_path/index/filings.sqlite
+    assert cli.main(["index", "--fake", "--data", data]) == 0
+    assert "7 chunks" in capsys.readouterr().out
+    assert cli.main(["search", "data center revenue growth", "--k", "2", "--data", data]) == 0  # hybrid by default
+    results = _results(capsys.readouterr().out)
+    assert [r[0] for r in results] == [1, 2]
+    assert results[0][1:3] == ("ACME-10-Q-20240802-2-001", "2")
+    assert results[0][3] == "Data center revenue growth was strong: data center revenue growth."
+
+
+def test_search_prints_the_first_200_characters_and_warns_about_a_stale_index(tmp_path, store, capsys):
+    data = str(tmp_path)
+    assert cli.main(["index", "--fake", "--data", data]) == 0
+    text = "Tariffs\n" + " ".join(f"w{i:03d}" for i in range(80))  # 407 characters
+    store.add_chunks([Chunk("OTHR-10-K-20240216-1A-001", "OTHR-10-K-20240216", "1A", 1, text, 81)])
+    capsys.readouterr()
+
+    assert cli.main(["search", "tariffs", "--strategy", "bm25", "--ticker", "othr", "--data", data]) == 0
+    captured = capsys.readouterr()
+    assert _results(captured.out) == [(1, "OTHR-10-K-20240216-1A-001", "1A", "Tariffs " + text[8:200] + "...")]
+    assert captured.err == ""  # bm25 does not use the vectors
+
+    assert cli.main(["search", "tariffs", "--data", data]) == 0
+    assert "filings-qa index" in capsys.readouterr().err  # the new chunk has no vector yet
+
+
+def test_search_needs_a_usable_dense_index_except_with_bm25(tmp_path, store, capsys):
+    data = str(tmp_path)
+    assert cli.main(["search", "revenue", "--strategy", "dense", "--data", data]) == 1
+    assert "filings-qa index" in capsys.readouterr().err
+    assert cli.main(["search", "revenue", "--strategy", "bm25", "--k", "1", "--data", data]) == 0
+    assert len(_results(capsys.readouterr().out)) == 1
+
+    # vectors made by an embedder that search cannot recreate: an error message, not a traceback
+    assert cli.main(["index", "--fake", "--data", data]) == 0
+    (tmp_path / "index" / "embedder.json").write_text('{"kind": "custom"}')
+    assert cli.main(["search", "revenue", "--data", data]) == 1
+    assert "filings-qa index" in capsys.readouterr().err
+
+
+def test_index_without_fastembed_prints_the_install_command(tmp_path, store, capsys):
+    assert cli.main(["index", "--data", str(tmp_path)]) == 1  # conftest makes `import fastembed` fail
+    assert "pip install" in capsys.readouterr().err
+
+
+def test_index_and_search_need_ingested_filings(tmp_path, capsys):
+    assert cli.main(["index", "--fake", "--data", str(tmp_path / "empty")]) == 1
+    assert cli.main(["search", "revenue", "--data", str(tmp_path / "empty")]) == 1
+    assert "filings-qa ingest" in capsys.readouterr().err
+    assert not (tmp_path / "empty").exists()
+
+
+def test_search_embeds_the_query_with_the_model_that_built_the_index(tmp_path, store, fake_fastembed, capsys):
+    data = str(tmp_path)
+    assert cli.main(["index", "--model", "test/model-a", "--data", data]) == 0
+    assert cli.main(["search", "data center revenue growth", "--strategy", "dense", "--k", "1", "--data", data]) == 0
+    assert [m.model_name for m in fake_fastembed] == ["test/model-a", "test/model-a"]  # index, then search
+    assert len(_results(capsys.readouterr().out)) == 1

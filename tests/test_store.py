@@ -1,36 +1,9 @@
-from dataclasses import replace
-from datetime import date
-
-import pytest
-
 from filings_qa.chunk import Chunk
-from filings_qa.store import Store, fts_query
+from filings_qa.store import fts_query
 
 
 def _chunk(filing, item, ordinal, text):
     return Chunk(f"{filing.key}-{item}-{ordinal:03d}", filing.key, item, ordinal, text, len(text.split()))
-
-
-@pytest.fixture
-def store(tmp_path, sample_filing):
-    s = Store(tmp_path / "index" / "filings.sqlite")
-    other = replace(sample_filing, ticker="OTHR", form="10-K", filed=date(2024, 2, 16), accession="0000000002-24-1")
-    s.add_filing(sample_filing, 6)
-    s.add_chunks(
-        [
-            _chunk(sample_filing, "2", 1, "Data center revenue growth was strong: data center revenue growth."),
-            _chunk(sample_filing, "2", 2, "Gaming revenue declined because of weaker consumer demand."),
-            _chunk(sample_filing, "1A", 1, "Supply chain disruptions could delay shipments of our products."),
-            # unrelated chunks, so that the query terms are rare enough for BM25 to weigh them
-            _chunk(sample_filing, "3", 1, "Legal proceedings arise in the ordinary course of business."),
-            _chunk(sample_filing, "4", 1, "The company repurchased shares under its buyback program."),
-            _chunk(sample_filing, "5", 1, "Employees work in plants located in several countries."),
-        ]
-    )
-    s.add_filing(other, 1)
-    s.add_chunks([_chunk(other, "7", 1, "Revenue growth at the data center business accelerated all year.")])
-    yield s
-    s.close()
 
 
 def test_bm25_ranks_best_match_first_with_scores_descending(store):
@@ -83,3 +56,11 @@ def test_re_adding_a_filing_replaces_its_chunks_in_the_index(store, sample_filin
     assert store.bm25("gaming", k=5) == []  # old chunk text is gone from the full-text index
     assert [h.chunk_id for h in store.bm25("inventory", k=5)] == ["ACME-10-Q-20240802-2-001"]
     store.conn.execute("INSERT INTO chunks_fts (chunks_fts, rank) VALUES ('integrity-check', 1)")
+
+
+def test_chunk_ids_by_ticker_and_form(store):
+    acme = [f"ACME-10-Q-20240802-{item}" for item in ("2-001", "2-002", "1A-001", "3-001", "4-001", "5-001")]
+    assert store.chunk_ids(ticker="acme") == acme  # in insertion order
+    assert store.chunk_ids(form="10-k") == ["OTHR-10-K-20240216-7-001"]
+    assert store.chunk_ids(ticker="ACME", form="10-K") == []
+    assert len(store.chunk_ids()) == 7
