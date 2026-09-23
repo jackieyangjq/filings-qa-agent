@@ -1,0 +1,33 @@
+[project]
+name = "filings-qa-agent"
+version = "0.1.0"
+description = "Question answering over SEC 10-K/10-Q filings with checkable citations, a tool-using agent, and a retrieval evaluation."
+requires-python = ">=3.12"
+license = { text = "MIT" }
+dependencies = ["pydantic>=2", "pyyaml", "beautifulsoup4", "lxml", "numpy", "requests"]
+
+[project.optional-dependencies]
+embed = ["fastembed>=0.4"]
+llm = ["google-genai>=2.25"]
+tools = ["yfinance"]
+dev = ["pytest>=8", "ruff>=0.6"]
+
+[project.scripts]
+filings-qa = "filings_qa.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/filings_qa"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

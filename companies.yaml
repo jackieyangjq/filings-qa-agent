@@ -1,0 +1,20 @@
+# Companies that `filings-qa ingest` downloads. For each one it takes the latest filing of the first form and the
+# latest (limit - 1) filings of the other forms: by default the latest 10-K and the three latest 10-Qs.
+# The CIK (SEC's company number) is looked up from the ticker unless `ciks` lists it; list several, current first,
+# when a company's recent filings are split between a new and an old registrant.
+forms: ["10-K", "10-Q"]
+limit: 4
+companies:
+  - {ticker: AAPL, name: Apple}
+  - {ticker: MSFT, name: Microsoft}
+  - {ticker: NVDA, name: NVIDIA}
+  - {ticker: AMZN, name: Amazon}
+  - {ticker: GOOGL, name: Alphabet}
+  - {ticker: META, name: Meta Platforms}
+  - {ticker: TSLA, name: Tesla}
+  - {ticker: AVGO, name: Broadcom}
+  - {ticker: AMD, name: Advanced Micro Devices}
+  - {ticker: COST, name: Costco}
+  - {ticker: JPM, name: JPMorgan Chase}
+  # ExxonMobil Holdings Corp became the listed company in July 2026; earlier reports are under Exxon Mobil Corp.
+  - {ticker: XOM, name: Exxon Mobil, ciks: [2115436, 34088]}
