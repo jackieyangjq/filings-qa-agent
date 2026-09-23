@@ -10,6 +10,7 @@ import pytest
 from filings_qa import edgar
 from filings_qa.chunk import Chunk
 from filings_qa.embed import FakeEmbedder
+from filings_qa.llm import Gemini, SetupError
 from filings_qa.store import Store
 
 FIXTURES = Path(__file__).parent / "fixtures"
@@ -23,6 +24,17 @@ def no_network(monkeypatch):
         raise AssertionError(f"unexpected network request in a test: {url}")
 
     monkeypatch.setattr(edgar, "_http_get", refuse)
+
+
+@pytest.fixture(autouse=True)
+def no_llm_requests(monkeypatch):
+    """Tests never reach Gemini: they use FakeLLM, or replace ``_call`` on their own Gemini. The error is a SetupError
+    so that it fails at once instead of being retried after 30 and 60 seconds."""
+
+    def refuse(self, model, **kwargs):
+        raise SetupError(f"unexpected Gemini request in a test: {model}")
+
+    monkeypatch.setattr(Gemini, "_call", refuse)
 
 
 @pytest.fixture(autouse=True)

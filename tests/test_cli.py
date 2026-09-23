@@ -6,6 +6,7 @@ import pytest
 from filings_qa import cli, edgar
 from filings_qa.chunk import Chunk
 from filings_qa.edgar import Response
+from filings_qa.llm import FakeLLM
 from filings_qa.store import Store, db_path
 
 TICKERS = {"0": {"cik_str": 1234567, "ticker": "ACME", "title": "Acme Widgets, Inc."},
@@ -177,3 +178,87 @@ def test_search_embeds_the_query_with_the_model_that_built_the_index(tmp_path, s
     assert [m.model_name for m in fake_fastembed] == ["test/model-a", "test/model-a"]  # index, then search
     assert [m.cache_dir for m in fake_fastembed] == [str(tmp_path / "models")] * 2  # <data>/models
     assert len(_results(capsys.readouterr().out)) == 1
+
+
+GROWTH = "ACME-10-Q-20240802-2-001"
+USAGE_LINE = re.compile(r"^model=(\S+) tokens in/out=(\d+)/(\d+) latency=(\d+\.\d)s dropped=(\d+) uncited=(\d+)$")
+
+
+def _reply(*sentences, abstained=False):
+    return {"abstained": abstained, "sentences": [{"text": t, "citations": c} for t, c in sentences]}
+
+
+@pytest.fixture
+def fake_llm(monkeypatch):
+    """Makes `ask` use a FakeLLM; call the fixture with the scripted replies. Returns the FakeLLM."""
+
+    def install(*script, **kwargs):
+        llm = FakeLLM(list(script), **kwargs)
+        monkeypatch.setattr(cli, "_make_llm", lambda: llm)
+        return llm
+
+    return install
+
+
+def test_ask_prints_each_sentence_with_its_citations_then_usage(tmp_path, store, fake_llm, capsys):
+    data = str(tmp_path)
+    assert cli.main(["index", "--fake", "--data", data]) == 0
+    capsys.readouterr()
+    llm = fake_llm(
+        _reply(
+            ("Data center revenue growth was strong.", [GROWTH, "OTHR-10-K-20240216-7-001"]),
+            ("Gaming revenue doubled.", ["ACME-10-Q-20240802-8-008"]),  # not retrieved: dropped
+            ("No growth rate is given.", []),
+        ),
+        tokens=(5321, 412),
+        latency=1.25,
+    )
+    assert cli.main(["ask", "data center revenue growth", "--data", data]) == 0  # hybrid, k 8
+    lines = capsys.readouterr().out.splitlines()
+    assert lines[:2] == [
+        f"Data center revenue growth was strong. [{GROWTH}, OTHR-10-K-20240216-7-001]",
+        "No growth rate is given. [no citation]",
+    ]
+    m = USAGE_LINE.match(lines[-1])
+    assert m and m.groups() == ("gemini-3.5-flash", "5321", "412", m[4], "1", "1") and 1.2 < float(m[4]) < 2
+    assert len(lines) == 3
+    assert llm.calls[0]["models"] == ["gemini-3.5-flash", "gemini-3.5-flash-lite"]
+
+
+def test_ask_abstains_filters_retrieval_and_prints_json(tmp_path, store, fake_llm, capsys):
+    data = str(tmp_path)
+    llm = fake_llm(_reply(("The excerpts do not cover this.", []), abstained=True), _reply(("Growth.", [GROWTH])))
+    args = ["ask", "revenue growth", "--strategy", "bm25", "--ticker", "othr", "--k", "2", "--data", data]
+    assert cli.main(args) == 0
+    out = capsys.readouterr().out.splitlines()
+    assert out[0] == "Abstained: the retrieved excerpts do not answer this question."
+    assert out[1] == "  The excerpts do not cover this."
+    assert USAGE_LINE.match(out[2])[6] == "1"
+    assert "OTHR-10-K-20240216-7-001" in llm.prompts[0] and "ACME-" not in llm.prompts[0]  # --ticker OTHR
+
+    assert cli.main(["ask", "revenue growth", "--strategy", "bm25", "--json", "--models", "a, b", "--data", data]) == 0
+    result = json.loads(capsys.readouterr().out)
+    assert result["sentences"] == [{"text": "Growth.", "citations": [GROWTH]}] and result["abstained"] is False
+    assert result["model"] == "a" and llm.calls[1]["models"] == ["a", "b"]
+    assert [h["rank"] for h in result["hits"]] == list(range(1, len(result["hits"]) + 1))
+
+
+def test_ask_flags_advice_wording(tmp_path, store, fake_llm, capsys):
+    fake_llm(_reply(("Growth was strong, so you should buy.", [GROWTH])))
+    assert cli.main(["ask", "revenue growth", "--strategy", "bm25", "--data", str(tmp_path)]) == 0
+    out = capsys.readouterr().out
+    assert 'Note: the wording "should buy" reads like investment advice' in out
+
+
+def test_ask_without_a_key_or_with_a_failing_model(tmp_path, store, fake_llm, monkeypatch, capsys):
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    assert cli.main(["ask", "revenue", "--strategy", "bm25", "--data", str(tmp_path)]) == 1
+    assert "GEMINI_API_KEY is not set" in capsys.readouterr().err
+
+    error = Exception("quota")
+    error.code = 429
+    fake_llm(error)
+    assert cli.main(["ask", "revenue", "--strategy", "bm25", "--data", str(tmp_path)]) == 1
+    assert "no answer: quota or rate limit exceeded (HTTP 429)" in capsys.readouterr().err
+    assert cli.main(["ask", "revenue", "--strategy", "dense", "--data", str(tmp_path)]) == 1  # no vectors yet
+    assert "filings-qa index" in capsys.readouterr().err

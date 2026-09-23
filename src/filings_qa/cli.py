@@ -1,8 +1,10 @@
-"""Command line entry point: ``filings-qa ingest``, ``stats``, ``index`` and ``search``."""
+"""Command line entry point: ``filings-qa ingest``, ``stats``, ``index``, ``search`` and ``ask``."""
 
 from __future__ import annotations
 
 import argparse
+import functools
+import json
 import os
 import sys
 import time
@@ -12,16 +14,19 @@ from typing import Any
 import yaml
 
 from . import edgar
+from .answer import ANSWER_MODELS, Answer, answer
 from .chunk import chunk_filing
 from .embed import (
     DEFAULT_MODEL,
     VECTORS_FILE,
     DenseIndex,
+    Embedder,
     FakeEmbedder,
     FastEmbedEmbedder,
     embedder_from_spec,
     models_dir,
 )
+from .llm import Gemini, SetupError, short_error
 from .parse import html_to_text, split_items
 from .retrieve import STRATEGIES, retrieve
 from .store import Store, db_path
@@ -186,6 +191,21 @@ def _warn_if_stale(store: Store, dense: DenseIndex) -> None:
         )
 
 
+def _load_dense(store: Store, path: Path, args: argparse.Namespace) -> tuple[DenseIndex | None, Embedder | None]:
+    """The dense index next to ``path`` and the embedder for its queries, or (None, None) for ``--strategy bm25``.
+    Raises LookupError after printing why they cannot be loaded."""
+    if args.strategy == "bm25":
+        return None, None
+    try:
+        dense = DenseIndex.load(path.parent)
+        embedder = embedder_from_spec(dense.embedder_spec, cache_dir=models_dir(args.data))
+    except (FileNotFoundError, ValueError) as e:  # no index, a damaged one, or an unknown embedder
+        print(f"{e} (or search without vectors: --strategy bm25)", file=sys.stderr)
+        raise LookupError from e
+    _warn_if_stale(store, dense)
+    return dense, embedder
+
+
 def _preview(text: str) -> str:
     flat = " ".join(text.split())
     return flat if len(flat) <= PREVIEW_CHARS else flat[:PREVIEW_CHARS] + "..."
@@ -196,15 +216,10 @@ def cmd_search(args: argparse.Namespace) -> int:
     if path is None:
         return 1
     with Store(path) as store:
-        dense = embedder = None
-        if args.strategy != "bm25":
-            try:
-                dense = DenseIndex.load(path.parent)
-                embedder = embedder_from_spec(dense.embedder_spec, cache_dir=models_dir(args.data))
-            except (FileNotFoundError, ValueError) as e:  # no index, a damaged one, or an unknown embedder
-                print(f"{e} (or search without vectors: --strategy bm25)", file=sys.stderr)
-                return 1
-            _warn_if_stale(store, dense)
+        try:
+            dense, embedder = _load_dense(store, path, args)
+        except LookupError:
+            return 1
         hits = retrieve(
             args.query,
             store=store,
@@ -223,6 +238,74 @@ def cmd_search(args: argparse.Namespace) -> int:
         chunk = chunks.get(hit.chunk_id)
         print(f"{hit.rank:>2}. {hit.score:.4f}  {hit.chunk_id}  item {(chunk.item or '-') if chunk else '?'}")
         print(f"    {_preview(chunk.text) if chunk else '(no longer stored)'}")
+    return 0
+
+
+def _make_llm() -> Gemini:
+    """The model client of ``ask`` (key from GEMINI_API_KEY); tests replace this function."""
+    return Gemini()
+
+
+def _print_answer(result: Answer) -> None:
+    if result.abstained:
+        print("Abstained: the retrieved excerpts do not answer this question.")
+    elif not result.sentences:
+        print(
+            f"No answer left: {result.dropped_sentences} sentence(s) cited excerpts that were not retrieved and were"
+            " dropped."
+            if result.dropped_sentences
+            else "No answer: the model returned no sentences."
+        )
+    indent = "  " if result.abstained else ""
+    for sentence in result.sentences:
+        cited = f" [{', '.join(sentence.citations)}]" if sentence.citations else ("" if indent else " [no citation]")
+        print(f"{indent}{sentence.text}{cited}")
+    if result.advice_hits:
+        print(
+            f'Note: the wording "{"; ".join(result.advice_hits)}" reads like investment advice. This tool only'
+            " reports what the filings say; nothing here is a recommendation to buy, sell or hold."
+        )
+    print(
+        f"model={result.model or 'none'} tokens in/out={result.usage['in']}/{result.usage['out']}"
+        f" latency={result.latency_s:.1f}s dropped={result.dropped_sentences} uncited={result.uncited_sentences}"
+    )
+
+
+def cmd_ask(args: argparse.Namespace) -> int:
+    try:
+        llm = _make_llm()
+    except SetupError as e:
+        print(e, file=sys.stderr)
+        return 1
+    path = _existing_db(args.data)
+    if path is None:
+        return 1
+    models = [m.strip() for m in args.models.split(",") if m.strip()] if args.models else None
+    with Store(path) as store:
+        try:
+            dense, embedder = _load_dense(store, path, args)
+        except LookupError:
+            return 1
+        retriever = functools.partial(
+            retrieve, store=store, dense=dense, embedder=embedder, ticker=args.ticker, form=args.form
+        )
+        try:
+            result = answer(
+                args.question,
+                retriever=retriever,
+                llm=llm,
+                store=store,
+                strategy=args.strategy,
+                k=args.k,
+                models=models,
+            )
+        except Exception as e:  # quota, network, an unusable reply: a message, not a traceback
+            print(f"no answer: {short_error(e)}", file=sys.stderr)
+            return 1
+    if args.json:
+        print(json.dumps(result.to_dict(), indent=2, ensure_ascii=False))
+    else:
+        _print_answer(result)
     return 0
 
 
@@ -257,6 +340,19 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--form", help="only chunks of this form, e.g. 10-K")
     p.add_argument("--data", default="data", help="data folder (default: data)")
     p.set_defaults(func=cmd_search)
+
+    p = sub.add_parser("ask", help="answer a question from the filings, citing a chunk id after every sentence")
+    p.add_argument("question")
+    p.add_argument("--strategy", choices=STRATEGIES, default="hybrid", help="retrieval (default: hybrid)")
+    p.add_argument("--k", type=int, default=8, help="number of chunks shown to the model (default: 8)")
+    p.add_argument("--ticker", help="only chunks of this company")
+    p.add_argument("--form", help="only chunks of this form, e.g. 10-K")
+    p.add_argument(
+        "--models", help=f"Gemini models to try in order, comma-separated (default: {','.join(ANSWER_MODELS)})"
+    )
+    p.add_argument("--json", action="store_true", help="print the whole answer as JSON")
+    p.add_argument("--data", default="data", help="data folder (default: data)")
+    p.set_defaults(func=cmd_ask)
 
     args = parser.parse_args(argv)
     return args.func(args)
