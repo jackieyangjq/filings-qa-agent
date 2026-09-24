@@ -31,6 +31,8 @@ from .store import STOPWORDS, Hit, Store
 NEWS_URL = "https://news.google.com/rss/search?q={query}&hl=en-US&gl=US&ceid=US:en"
 FINNHUB_NEWS_URL = "https://finnhub.io/api/v1/company-news?symbol={symbol}&from={start}&to={end}"
 FINNHUB_KEY_ENV = "FINNHUB_API_KEY"
+FINNHUB_MAX_ITEMS = 250  # a company-news reply holds at most this many items, the newest first
+FINNHUB_MAX_REQUESTS = 4  # per get_news call, going further back while replies are full
 USER_AGENT = "filings-qa (https://github.com/jackieyangjq/filings-qa-agent)"
 HTTP_TIMEOUT_S = 20
 DEFAULT_SEARCH_K = 6
@@ -348,28 +350,54 @@ def _stem(word: str) -> str:
     return word
 
 
+def finnhub_items(get: Fetch, ticker: str, since: datetime, end: datetime) -> list[dict[str, Any]]:
+    """Finnhub's company news of ``ticker`` from ``since`` to ``end`` (see ``parse_finnhub_news``), fetched with
+    ``get``. A reply holds at most ``FINNHUB_MAX_ITEMS`` items, the newest first, which for a much-covered company can
+    be only the last two or three days; while a reply is full and stops short of ``since``, the next request ends the
+    day before the oldest day it reached (whose earlier items are skipped), up to ``FINNHUB_MAX_REQUESTS`` requests."""
+    items: list[dict[str, Any]] = []
+    last = end.date()
+    for _ in range(FINNHUB_MAX_REQUESTS):
+        if last < since.date():
+            break
+        reply = parse_finnhub_news(get(finnhub_news_url(ticker, since.date(), last)))
+        items += reply
+        dated = [i["published"] for i in reply if i["published"]]
+        if len(reply) < FINNHUB_MAX_ITEMS or not dated:
+            break
+        last = min(dated).date() - timedelta(days=1)
+    return items
+
+
 def rank_by_topic(items: Sequence[dict[str, Any]], topic: str | None) -> list[dict[str, Any]]:
-    """Finnhub has no search, so a topic filters its items: those whose title or summary mentions a word of ``topic``
-    (stopwords aside; a word without its plural ending matches the start of a word, so "tariffs" finds "tariff" and
-    "tariffs"), the ones mentioning more of its words first, then the newest. Without a topic, every item, newest
-    first."""
+    """Finnhub neither searches nor ranks, so its items are ranked here. With a topic, only the items whose title or
+    summary mentions a word of ``topic`` are kept (stopwords aside; a word without its plural ending matches the start
+    of a word, so "tariffs" finds "tariff" and "tariffs"), the ones mentioning more of its words first. Among equals,
+    the headlines are spread over the period: the newest item of each day, days newest first, then the second newest
+    of each day, and so on, so that a busy day cannot fill every place."""
     words = [w.lower() for w in _WORD.findall(str(topic or ""))]
     terms = list(dict.fromkeys(_stem(w) for w in words if w not in STOPWORDS))
+    patterns = [re.compile(rf"\b{re.escape(t)}", re.IGNORECASE) for t in terms]
 
     def newest(item: dict[str, Any]) -> float:
         return item["published"].timestamp() if item["published"] else float("-inf")
 
-    if not terms:
-        return sorted(items, key=newest, reverse=True)
-    patterns = [re.compile(rf"\b{re.escape(t)}", re.IGNORECASE) for t in terms]
     scored = []
-    for item in items:
+    for item in sorted(items, key=newest, reverse=True):
         text = f"{item['title']} {item.get('summary', '')}"
-        found = sum(1 for p in patterns if p.search(text))
+        found = sum(1 for p in patterns if p.search(text)) if patterns else 1
         if found:
-            scored.append((found, newest(item), item))
-    scored.sort(key=lambda s: (s[0], s[1]), reverse=True)
-    return [item for _, _, item in scored]
+            scored.append((found, item))
+    seen_on_day: dict[tuple[int, date], int] = {}  # (words found, day) -> items of that day ranked so far
+    ranked = []
+    for found, item in scored:  # newest first, so the count gives each item its place within its day
+        place: float = float("inf")  # undated items go last
+        if item["published"]:
+            day = item["published"].date()
+            place = seen_on_day[found, day] = seen_on_day.get((found, day), -1) + 1
+        ranked.append((-found, place, -newest(item), item))
+    ranked.sort(key=lambda r: r[:3])
+    return [item for *_, item in ranked]
 
 
 def get_news(
@@ -384,8 +412,8 @@ def get_news(
     [{"date": "2026-09-22", "source", "title", "url"}]: the first ``MAX_NEWS`` in ranking order, without repeated
     titles, sorted newest first. ``now`` defaults to the current time.
 
-    With the environment variable FINNHUB_API_KEY set, they come from Finnhub's company news, ranked by
-    ``rank_by_topic``, and ``fetch`` defaults to ``finnhub_get`` with that key. Without it, they come from the Google
+    With the environment variable FINNHUB_API_KEY set, they come from Finnhub's company news (``finnhub_items``),
+    ranked by ``rank_by_topic``, and ``fetch`` defaults to ``finnhub_get`` with that key. Without it, from the Google
     News RSS search for "<TICKER> stock" (or "<TICKER> <topic>"), ranked as Google ranks the feed, and ``fetch``
     defaults to ``http_get``. Google offers these feeds for personal, non-commercial use; Finnhub has a free key."""
     symbol = _ticker(ticker)
@@ -395,7 +423,7 @@ def get_news(
     key = os.environ.get(FINNHUB_KEY_ENV, "").strip()
     if key:
         get = fetch or functools.partial(finnhub_get, token=key)
-        ranked = rank_by_topic(parse_finnhub_news(get(finnhub_news_url(symbol, since.date(), end.date()))), topic)
+        ranked = rank_by_topic(finnhub_items(get, symbol, since, end), topic)
     else:
         ranked = parse_news_rss((fetch or http_get)(news_url(symbol, topic)))
     seen: set[str] = set()

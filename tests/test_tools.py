@@ -1,5 +1,6 @@
 import functools
 import inspect
+import json
 import sys
 import types
 from datetime import UTC, date, datetime
@@ -21,6 +22,7 @@ from filings_qa.tools import (
     get_price,
     parse_finnhub_news,
     parse_news_rss,
+    rank_by_topic,
     search_filings,
     summarize,
     tool_declarations,
@@ -184,6 +186,60 @@ def test_a_topic_filters_and_ranks_finnhub_headlines(monkeypatch):
     assert dates("capital expenditures") == [("2026-09-23", "Example Wire"), ("2026-09-02", "Example Wire")]
     # without a topic, the newest two, whatever the order of the reply
     assert dates(None) == [("2026-09-23", "Example Wire"), ("2026-09-22", "Example Wire")]
+
+
+def test_finnhub_headlines_are_spread_over_the_days_of_the_period():
+    """A busy day cannot fill every place: the newest headline of each day comes before the second newest of any."""
+
+    def item(day, hour, title, summary=""):
+        published = datetime(2026, 9, day, hour, tzinfo=UTC)
+        return {"published": published, "source": "Wire", "title": title, "url": "", "summary": summary}
+
+    a1, a2, a3 = item(23, 15, "a1"), item(23, 14, "a2"), item(23, 13, "a3")
+    b1, b2, c1 = item(22, 9, "b1"), item(22, 8, "b2"), item(20, 9, "c1")
+    undated = {**item(20, 1, "undated"), "published": None}
+    items = [a3, b2, undated, a1, c1, a2, b1]  # the order of the reply does not matter
+    assert [i["title"] for i in rank_by_topic(items, None)] == ["a1", "b1", "c1", "a2", "b2", "a3", "undated"]
+    a2["summary"] = b2["summary"] = "capital expenditure"
+    a3["summary"] = c1["summary"] = "capital"
+    # both words first (a2, b2), then one word (a3, c1), each group spread over its days
+    assert [i["title"] for i in rank_by_topic(items, "capital expenditure")] == ["a2", "b2", "a3", "c1"]
+
+
+def test_finnhub_pages_back_while_replies_are_full(monkeypatch):
+    """A reply holds at most FINNHUB_MAX_ITEMS items, the newest first: while one is full, the next request ends the
+    day before the oldest day it reached, up to FINNHUB_MAX_REQUESTS requests."""
+    monkeypatch.setenv("FINNHUB_API_KEY", "test-key")
+    monkeypatch.setattr(tools, "FINNHUB_MAX_ITEMS", 2)
+    a, d, b, _, e, _ = json.loads(finnhub(""))  # 2026-09-23, 09-21, 09-22, 09-22, 09-02, undated
+    pages = {"2026-09-23": [a, b], "2026-09-21": [d, e], "2026-09-01": []}  # by the last day asked for
+    urls = []
+
+    def fetch(url):
+        urls.append(url)
+        return json.dumps(pages[url.rsplit("&to=", 1)[1]]).encode()
+
+    news = get_news("ACME", days=30, fetch=fetch, now=NOW)
+    assert [url.split("&from=", 1)[1] for url in urls] == [
+        "2026-08-24&to=2026-09-23",
+        "2026-08-24&to=2026-09-21",  # the first reply was full and reached 2026-09-22
+        "2026-08-24&to=2026-09-01",
+    ]
+    assert [n["date"] for n in news] == ["2026-09-23", "2026-09-22", "2026-09-21", "2026-09-02"]
+    urls.clear()
+    pages["2026-09-23"] = [a]  # not full: nothing older is asked for
+    get_news("ACME", days=30, fetch=fetch, now=NOW)
+    assert len(urls) == 1
+    urls.clear()
+    pages["2026-09-23"] = [a, b]
+    monkeypatch.setattr(tools, "FINNHUB_MAX_REQUESTS", 2)
+    get_news("ACME", days=30, fetch=fetch, now=NOW)
+    assert len(urls) == 2
+    urls.clear()
+    monkeypatch.setattr(tools, "FINNHUB_MAX_REQUESTS", 4)
+    pages["2026-09-21"] = [d, {**e, "datetime": int(datetime(2026, 8, 24, 20, tzinfo=UTC).timestamp())}]
+    get_news("ACME", days=30, fetch=fetch, now=NOW)
+    assert len(urls) == 2  # the second reply is full but reaches the first day of the period: nothing is left
 
 
 def test_finnhub_key_goes_in_a_header_not_the_url(monkeypatch):
