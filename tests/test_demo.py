@@ -76,17 +76,18 @@ def test_the_command_needs_no_network_key_or_folder(tmp_path, monkeypatch, capsy
 
 
 def test_the_command_fails_when_a_sentence_cites_a_chunk_not_retrieved(monkeypatch, capsys):
-    question = "What was NVIDIA's Data Center revenue in the quarter ended July 26, 2026, and what drove it?"
+    question = demo.load_questions()[1].question  # NVIDIA's supply commitments
     reply = {
         "abstained": False,
         "sentences": [
-            {"text": "Data Center revenue was $89.0 billion.", "citations": ["NVDA-10-Q-20260826-2-002"]},
-            {"text": "Apple bought back shares.", "citations": ["AAPL-10-K-20251031-5-001"]},  # not retrieved
+            {"text": "The commitments rose to $279 billion.", "citations": ["NVDA-10-Q-20260826-2-005"]},
+            {"text": "Apple bought back shares.", "citations": ["AAPL-10-K-20251031-5-001"]},  # indexed, not retrieved
         ],
     }
     monkeypatch.setattr(demo, "load_questions", lambda: [DemoQuestion(question, reply)])
     assert cli.main(["demo"]) == 1
     captured = capsys.readouterr()
+    assert "filings-qa demo: 1 question answered offline" in captured.out
     assert "Citation check: 1 sentence kept, 1 dropped" in captured.out
     assert "demo check failed: question 1: 1 sentence(s) cited a chunk not retrieved" in captured.err
 
@@ -103,7 +104,9 @@ def test_the_corpus_is_six_short_excerpts_of_three_filings():
     ]
     for e in excerpts:
         assert len(e.section.text.split()) <= 1500
+        assert re.match(rf"Item {e.section.item}\b", e.section.text)  # the start of the section: ids as in ingest
         assert e.filing.key == e.name.rsplit("-", 1)[0] and e.section.item == e.name.rsplit("-", 1)[1]
         assert re.fullmatch(r"https://www\.sec\.gov/Archives/edgar/data/\d+/\d{18}/[a-z]+-\d{8}\.htm", e.filing.url)
         assert e.filing.accession.replace("-", "") in e.filing.url and str(e.filing.cik) in e.filing.url
     assert len({e.filing.url for e in excerpts}) == 3  # two sections of one filing per company
+

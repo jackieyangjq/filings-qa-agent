@@ -1,10 +1,11 @@
 """Offline demo: three questions answered from six excerpts of SEC filings, with no network, key or model download.
 
-``corpus/<TICKER>-<FORM>-<YYYYMMDD>-<item>.txt`` is an excerpt of one section of a filing: consecutive lines, at most
+``corpus/<TICKER>-<FORM>-<YYYYMMDD>-<item>.txt`` is an excerpt of one section of a filing: its first lines, at most
 1,500 words, of the text that ``filings-qa ingest`` extracts, after a first line giving the filing's url on sec.gov
-(SEC filings are public records). ``replies.json`` lists the questions and the model reply the demo replays for each:
-the JSON that ``answer.answer`` asks the model for, written from the excerpts, with the chunk ids each sentence relies
-on.
+(SEC filings are public records). Since every excerpt starts where its section starts, its chunks get the ids that a
+full ingest gives them, with the same text (the last one cut short), so the demo's citations can be checked against
+the filings. ``replies.json`` lists the questions and the model reply the demo replays for each: the JSON that
+``answer.answer`` asks the model for, written from the excerpts, with the chunk ids each sentence relies on.
 
 ``build`` indexes the excerpts as ``ingest`` and ``index`` would, except that the vectors come from ``FakeEmbedder``
 (hashed words) instead of the embedding model. ``run`` does this in a temporary folder and answers each question with
@@ -109,9 +110,9 @@ def build(data_dir: Path | str, excerpts: Sequence[Excerpt] | None = None) -> De
         return DenseIndex.build(store, FakeEmbedder(DIM), path.parent)
 
 
-def _series(numbers: Sequence[int]) -> str:
+def _listing(items: Sequence[object]) -> str:
     """1 -> "1"; 1, 3 -> "1 and 3"; 1, 3, 6 -> "1, 3 and 6"."""
-    words = [str(n) for n in numbers]
+    words = [str(item) for item in items]
     return " and ".join([", ".join(words[:-1]), words[-1]]) if len(words) > 1 else "".join(words)
 
 
@@ -128,7 +129,7 @@ def show(result: Answer, number: int, total: int, store: Store, write: Callable[
     kept = len(result.sentences)
     rank = {hit.chunk_id: hit.rank for hit in result.hits}
     ranks = sorted(rank[c] for c in result.cited_ids if c in rank)
-    where = f"; they cite the chunks ranked {_series(ranks)} of the {len(result.hits)} retrieved" if ranks else ""
+    where = f"; they cite the chunks ranked {_listing(ranks)} of the {len(result.hits)} retrieved" if ranks else ""
     write(f"Citation check: {kept} sentence{'' if kept == 1 else 's'} kept, {result.dropped_sentences} dropped{where}.")
     for key in dict.fromkeys(c.filing_key for c in store.get_chunks(result.cited_ids)):
         write(f"Source: {key} {(store.get_filing(key) or {}).get('url', '')}")
@@ -158,9 +159,10 @@ def run(write: Callable[[str], Any] = print) -> list[Answer]:
     names = [name for t, name in COMPANIES.items() if t in tickers] + sorted(tickers - set(COMPANIES))
     with tempfile.TemporaryDirectory(prefix="filings-qa-demo-") as tmp:
         dense = build(tmp, excerpts)
+        plural = "" if len(questions) == 1 else "s"
         write(
-            f"filings-qa demo: {len(questions)} questions answered offline from {len(excerpts)} excerpts of SEC filings"
-            f" by {_names(names)} ({len(dense)} chunks, indexed in a temporary folder)."
+            f"filings-qa demo: {len(questions)} question{plural} answered offline from {len(excerpts)} excerpts of SEC"
+            f" filings by {_listing(names)} ({len(dense)} chunks, indexed in a temporary folder)."
         )
         write(
             "Stand-ins: hashed word vectors instead of the embedding model, and replies written in advance"
@@ -180,7 +182,3 @@ def run(write: Callable[[str], Any] = print) -> list[Answer]:
                 write("")
                 show(result, number, len(questions), store, write)
     return answers
-
-
-def _names(names: Sequence[str]) -> str:
-    return " and ".join([", ".join(names[:-1]), names[-1]]) if len(names) > 1 else "".join(names)

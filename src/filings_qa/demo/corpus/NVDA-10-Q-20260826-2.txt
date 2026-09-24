@@ -1,70 +1,19 @@
 https://www.sec.gov/Archives/edgar/data/1045810/000104581026000075/nvda-20260726.htm
-Second Quarter of Fiscal Year 2027 Summary
-Three Months Ended	Quarter-over-Quarter Change	Year-over-Year Change
-Jul 26, 2026	Apr 26, 2026	Jul 27, 2025
-($ in millions, except per share data)
-Revenue	$96,221	$81,615	$46,743	18%	106%
-Gross margin	75.0%	74.9%	72.4%	0.1 pts	2.6 pts
-Operating expenses	$8,408	$7,621	$5,413	10%	55%
-Operating income	$63,734	$53,536	$28,440	19%	124%
-Net income	$59,688	$58,321	$26,422	2%	126%
-Net income per diluted share	$2.46	$2.39	$1.08	3%	128%
-We specialize in markets where our computing platforms can provide tremendous acceleration for applications. These platforms incorporate processors, interconnects, software, algorithms, systems, and services to deliver unique value. Our platforms address large markets where our expertise is critical: Data Center and Edge Computing.
-Three Months Ended	Quarter-over-Quarter Change	Year-over-Year Change
-Jul 26, 2026	Apr 26, 2026	Jul 27, 2025
-($ in millions)
-Revenue by Market Platform (1) (2)
-Data Center	$89,023	$75,246	$41,096	18%	117%
-Hyperscale	48,710	43,050	24,168	13%	102%
-AI Clouds, Industrial, & Enterprise	40,313	32,196	16,928	25%	138%
-Edge Computing	7,198	6,369	5,647	13%	27%
-Total revenue	$96,221	$81,615	$46,743	18%	106%
-(1) In the first quarter of fiscal year 2027, we changed our presentation of revenue by market platform and the comparable periods have been recast.
-(2) During the second quarter of fiscal year 2027, we reclassified a company from ACIE to Hyperscale due to a change in their business model and recast the prior period revenue associated with this company.
-Revenue was $96.2 billion, up 106% from a year ago and up 18% sequentially.
-Data Center revenue was $89.0 billion, up 117% from a year ago and up 18% sequentially, driven by the ramp of our Blackwell Ultra infrastructure. Hyperscale revenue more than doubled from a year ago and increased 13% sequentially on the strength of Blackwell Ultra. ACIE revenue increased 138% from a year ago and 25% sequentially driven by end-demand from AI natives, enterprises, and sovereign customers, as well as hyperscalers utilizing AI clouds. Shipments of Data Center Hopper products to China during the second quarter of fiscal year 2027 were less than 1% of Data Center revenue.
-Edge Computing revenue was $7.2 billion, up 27% from a year ago and up 13% sequentially. The increases were driven by strong sales of Blackwell workstations, partially offset by slower consumer PC sales that were tempered by elevated memory and systems prices.
-Gross margin increased from a year ago on improved mix from Blackwell Ultra. Gross margin was approximately flat sequentially as our Blackwell architecture remains the vast majority of our revenue.
-Operating expenses were up 55% from a year ago and up 10% sequentially. These increases were driven by higher compute infrastructure and compensation and benefits costs.
-Financial Information by Business Segment and Geographic Data
-Refer to Note 13 of the Notes to Condensed Consolidated Financial Statements in Part I, Item 1 of this Quarterly Report on Form 10-Q for disclosures regarding segment information.
-Critical Accounting Policies and Estimates
-Refer to Part II, Item 7, “Critical Accounting Policies and Estimates” of our Annual Report on Form 10-K for the fiscal year ended January 25, 2026. There have been no material changes to our Critical Accounting Policies and Estimates.
-Results of Operations
-The following table sets forth, for the periods indicated, certain items in our Condensed Consolidated Statements of Income expressed as a percentage of revenue.
-Three Months Ended	Six Months Ended
-Jul 26, 2026	Jul 27, 2025	Jul 26, 2026	Jul 27, 2025
-Revenue	100.0%	100.0%	100.0%	100.0%
-Cost of revenue	25.0	27.6	25.0	33.4
-Gross profit	75.0	72.4	75.0	66.6
-Operating expenses
-Research and development	7.4	9.2	7.5	9.1
-Sales, general and administrative	1.4	2.4	1.5	2.4
-Total operating expenses	8.8	11.6	9.0	11.5
-Operating income	66.2	60.8	66.0	55.1
-Other income, net	8.1	6.0	13.6	3.4
-Income before income tax	74.3	66.8	79.6	58.5
-Income tax expense	12.3	10.2	13.2	8.7
-Net income	62.0%	56.6%	66.4%	49.8%
-Revenue and Reportable Segments
-Revenue by Reportable Segments
-Three Months Ended	Six Months Ended
-Jul 26, 2026	Jul 27, 2025	$ Change	% Change	Jul 26, 2026	Jul 27, 2025	$ Change	% Change
-($ in millions)
-Compute & Networking	$88,299	$41,331	$46,968	114%	$162,850	$80,920	$81,930	101%
-Graphics	7,922	5,412	2,510	46%	14,987	9,885	5,102	52%
-Total	$96,221	$46,743	$49,478	106%	$177,837	$90,805	$87,032	96%
-Operating Income by Reportable Segments
-Three Months Ended	Six Months Ended
-Jul 26, 2026	Jul 27, 2025	$ Change	% Change	Jul 26, 2026	Jul 27, 2025	$ Change	% Change
-($ in millions)
-Compute & Networking	$62,696	$28,363	$34,333	121%	$116,031	$50,417	$65,614	130%
-Graphics	3,899	2,242	1,657	74%	6,840	3,882	2,958	76%
-Total	$66,595	$30,605	$35,990	118%	$122,871	$54,299	$68,572	126%
-Compute & Networking revenue – The year-over-year increase in the second quarter and first half of fiscal year 2027 was driven by the ramp of our Blackwell Ultra infrastructure.
-Graphics revenue – The year-over-year increase in the second quarter and first half of fiscal year 2027 was driven by sales of our Blackwell architecture.
-Reportable segment operating income – The year-over-year increase in Compute & Networking segment operating income in the second quarter of fiscal year 2027 was driven by the growth in revenue. The year-over-year increase in Compute & Networking segment operating income in the first half of fiscal year 2027 was driven by the growth in revenue and the non-recurrence of a $4.5 billion charge associated with H20 excess inventory and purchase obligations in the first quarter of fiscal year 2026. The year-over-year increase in Graphics segment operating income in the second quarter and first half of fiscal year 2027 was driven by the growth in revenue.
-Concentration of Revenue
-We refer to customers who purchase products directly from NVIDIA as direct customers, such as AIBs, distributors, ODMs, OEMs, CSPs, AI model makers, and system integrators. Certain direct customers may use either internal resources or third-party system integrators to complete their build. We refer to indirect customers as those who purchase products through our direct customers; indirect customers include CSPs, AI clouds, AI model makers, enterprises, and public sector entities. Our revenue is concentrated among a limited number of direct and indirect customers and this trend may continue.
-Direct Customers – For the second quarter of fiscal year 2027, one direct customer represented 16% of total revenue, which was primarily attributable to the Compute & Networking segment. For the first half of fiscal year 2027, three direct customers represented 16%, 15%, and 13% of total revenue, all of which was primarily attributable to the Compute & Networking segment.
-For the second quarter of fiscal year 2026, two direct customers represented 23% and 16% of total revenue, all of which was primarily attributable to the Compute & Networking segment. For the first half of fiscal year 2026, two direct customers represented 20% and 15% of total revenue, all of which was primarily attributable to the Compute & Networking segment.
+Item 2. Management’s Discussion and Analysis of Financial Condition and Results of Operations
+Forward-Looking Statements
+This Quarterly Report on Form 10-Q contains forward-looking statements within the meaning of Section 27A of the Securities Act of 1933, as amended, and Section 21E of the Securities Exchange Act of 1934, as amended, which are subject to the “safe harbor” created by those sections based on management’s beliefs and assumptions and on information currently available to management. In some cases, you can identify forward-looking statements by terms such as “may,” “will,” “should,” “could,” “goal,” “would,” “expect,” “plan,” “anticipate,” “believe,” “estimate,” “project,” “predict,” “potential” and similar expressions intended to identify forward-looking statements. These statements involve known and unknown risks, uncertainties and other factors, which may cause our actual results, performance, time frames or achievements to be materially different from any future results, performance, time frames or achievements expressed or implied by the forward-looking statements. We discuss many of these risks, uncertainties and other factors in this Quarterly Report on Form 10-Q and our Annual Report on Form 10-K for the fiscal year ended January 25, 2026 in greater detail under the heading “Risk Factors” of such reports. Given these risks, uncertainties, and other factors, you should not place undue reliance on these forward-looking statements. Also, these forward-looking statements represent our estimates and assumptions only as of the date of this filing. You should read this Quarterly Report on Form 10-Q completely and understand that our actual future results may be materially different from what we expect. We hereby qualify our forward-looking statements by these cautionary statements. Except as required by law, we assume no obligation to update these forward-looking statements publicly, or to update the reasons actual results could differ materially from those anticipated in these forward-looking statements, even if new information becomes available in the future.
+All references to “NVIDIA,” “we,” “us,” “our” or the “Company” mean NVIDIA Corporation and its subsidiaries.
+In addition, statements that “we believe” and similar statements reflect our beliefs and opinions on the relevant subject. These statements are based upon information available to us as of the filing date of this Quarterly Report on Form 10-Q, and while we believe such information forms a reasonable basis for such statements, such information may be limited or incomplete, and our statements should not be read to indicate that we have conducted an exhaustive inquiry into, or review of, all potentially available relevant information. These statements are inherently uncertain, and investors are cautioned not to unduly rely upon these statements.
+© 2026 NVIDIA Corporation. All rights reserved.
+The following discussion and analysis of our financial condition and results of operations should be read in conjunction with the risk factors set forth in Item 1A. “Risk Factors” of our Annual Report on Form 10-K for the fiscal year ended January 25, 2026 and Part II, Item 1A. “Risk Factors” of this Quarterly Report on Form 10-Q and our Condensed Consolidated Financial Statements and related Notes thereto, as well as other cautionary statements and risks described elsewhere in this Quarterly Report on Form 10-Q and our other filings with the SEC, before deciding to purchase, hold, or sell our securities.
+Overview
+Our Company and Our Businesses
+NVIDIA pioneered accelerated computing to help solve the most challenging computational problems. Since our original focus on PC graphics, we have expanded to several other large and important computationally intensive fields. Fueled by the sustained demand for exceptional 3D graphics and the scale of the gaming market, NVIDIA has leveraged its GPU architecture to create platforms for scientific computing, AI, data science, autonomous vehicles, robotics, and digital twin applications. NVIDIA is now a data center-scale AI infrastructure company reshaping all industries.
+Our two operating segments are “Compute & Networking” and “Graphics.” Refer to Note 13 of the Notes to Condensed Consolidated Financial Statements in Part I, Item 1 of this Quarterly Report on Form 10-Q for additional information.
+Headquartered in Santa Clara, California, NVIDIA was incorporated in California in April 1993 and reincorporated in Delaware in April 1998.
+Recent Developments, Future Objectives and Challenges
+Revenue growth in the second quarter and the first half of fiscal year 2027 was driven by data center products for accelerated computing and AI solutions. Blackwell continued to account for the majority of our system shipments.
+Our next-generation Data Center architecture, Vera Rubin, began production shipments in the third quarter of fiscal year 2027. We will be shipping both Blackwell and Rubin systems in the future and are currently experiencing certain supply constraints. Demand estimates for our products can be inaccurate and create volatility in our revenue or supply levels. To secure inventory and capacity to meet demand for the next several years, we have entered into significant commitments and may continue to enter into manufacturing and supply agreements for both current and future products, and we continue to expand our supplier base. The scale and size of our production needs and the complexity of producing our data center systems has caused and could in the future cause delays in production, challenges in managing supply and demand, revenue volatility, quality issues, increased inventory provisions, decreases in product yields, higher material
+costs, and increased warranty costs. We have significantly increased our supply and capacity commitments from $119 billion last quarter to $279 billion as of July 26, 2026 to meet future demand. Refer to Note 10 of the Notes to Condensed Consolidated Financial Statements included in Part 1, Item 1 of this Quarterly Report on Form 10-Q. Customers may postpone purchasing new architectures due to the lack of availability of data center infrastructure to deploy our products, constraints on capital to have sufficient funding to purchase our products, or may adopt new technologies more gradually than anticipated, affecting our revenue timing and supply chain expenses.
+The availability of land, power, shell, and capital is crucial to support the buildout of a full data center inclusive of NVIDIA AI infrastructure by our customers and partners, and any shortage of these or other necessary resources could impact our future revenue and financial performance. Expanding land, power, shell, and energy needs to meet demand is a complex, multi-year process that involves significant regulatory, technical, and construction challenges. In addition, access to capital can be particularly constrained for less-capitalized companies, which may face difficulties securing financing for large-scale infrastructure projects. We believe AI clouds and AI model makers have significant demand for training and inference compute and currently lack the ability to secure long-term infrastructure contracts and investment-grade financing capacity to secure the AI infrastructure necessary to grow. These limitations could delay customer and partner deployments or reduce the scale of accelerated computing and AI adoption and may impact the growth of our revenue. We have undertaken initiatives to address these challenges including securing and providing guarantees of land, power, shell, and capacity of select data center infrastructure that customers require to deploy our products. We expect to focus our data center infrastructure initiatives on exceptional sites and apply the same discipline to these initiatives as we do to our supply-chain management by securing critical inputs when we have visibility into customer demand and when doing so enables long-term productive capacity. We expect our large cloud service provider customers and investment grade enterprises to continue to secure land, power, and shell commitments independently. Our land, power, and shell commitments and guarantees may impact our financial results and are dependent on the performance of our customers and partners.
+In August 2026, we entered into guarantees with SB Energy Corp. to provide credit support on the land, power, and shell buildout at SB Energy’s PORTS Technology Campus in Pike County, Ohio, covering leases for approximately 4.25 gigawatts of IT load. The campus will exclusively host our compute under 20-year leases to OpenAI, subject to limited exceptions, with our obligation capped at $105 billion in the aggregate, subject to certain conditions including SB Energy, the lessor, satisfying applicable ready-for-service conditions. Each guarantee generally becomes effective upon commencement of the applicable lease, with corresponding guarantee amounts increasing as each of nine data centers is placed in service, which is expected to begin in fiscal year 2029. Our exposure declines as OpenAI fulfills its lease payments. Our guarantees are limited to defined portions of lease and power payments and not the full cost of the site or all of the tenant’s obligations. The guarantees terminate upon certain events, including OpenAI achieving a satisfactory credit rating or after each respective lease term has completed. We also hold an option, exercisable in our sole discretion, to provide additional credit support in phases for approximately 3.8 additional gigawatts as the site scales. Refer to Note 10 of the Notes to Condensed Consolidated Financial Statements in Part 1, Item 1 of this Quarterly Report on Form 10-Q.

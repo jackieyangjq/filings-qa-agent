@@ -20,27 +20,27 @@
     }
   },
   {
-    "question": "What was NVIDIA's Data Center revenue in the quarter ended July 26, 2026, and what drove it?",
+    "question": "How much did NVIDIA increase its supply and capacity commitments in its latest quarter, and why?",
     "reply": {
       "abstained": false,
       "sentences": [
         {
-          "text": "NVIDIA's Data Center revenue was $89.0 billion in the quarter ended July 26, 2026 (the second quarter of fiscal year 2027), up 117% from a year ago and up 18% sequentially.",
-          "citations": ["NVDA-10-Q-20260826-2-001", "NVDA-10-Q-20260826-2-002"]
+          "text": "NVIDIA increased its supply and capacity commitments from $119 billion last quarter to $279 billion as of July 26, 2026, to meet future demand.",
+          "citations": ["NVDA-10-Q-20260826-2-005"]
         },
         {
-          "text": "NVIDIA says the growth was driven by the ramp of its Blackwell Ultra infrastructure.",
-          "citations": ["NVDA-10-Q-20260826-2-002"]
+          "text": "NVIDIA says it has entered into significant commitments to secure inventory and capacity to meet demand for the next several years, and that it is currently experiencing certain supply constraints.",
+          "citations": ["NVDA-10-Q-20260826-2-004"]
         },
         {
-          "text": "From a year ago, Hyperscale revenue more than doubled and AI Clouds, Industrial, & Enterprise revenue rose 138%.",
-          "citations": ["NVDA-10-Q-20260826-2-001", "NVDA-10-Q-20260826-2-002"]
+          "text": "NVIDIA also cautions that its demand estimates can be inaccurate and that customers may postpone buying new architectures for lack of data center infrastructure or of capital.",
+          "citations": ["NVDA-10-Q-20260826-2-004", "NVDA-10-Q-20260826-2-005"]
         }
       ]
     }
   },
   {
-    "question": "How many paid members did Costco have at the end of fiscal 2025, and how did its membership fee revenue change?",
+    "question": "How many paid members did Costco have at the end of fiscal 2025, and what was its membership renewal rate?",
     "reply": {
       "abstained": false,
       "sentences": [
@@ -49,12 +49,12 @@
           "citations": ["COST-10-K-20251008-1-007"]
         },
         {
-          "text": "Membership fee revenue increased 10% in 2025, driven by new member sign-ups and membership fee increases.",
-          "citations": ["COST-10-K-20251008-7-005"]
+          "text": "Costco's member renewal rate at the end of 2025 was 92.3% in the U.S. and Canada and 89.8% worldwide.",
+          "citations": ["COST-10-K-20251008-1-008"]
         },
         {
-          "text": "The increase in annual membership fees in the U.S. and Canada, effective September 1, 2024, accounted for approximately 40% of the growth in membership income during 2025.",
-          "citations": ["COST-10-K-20251008-7-005"]
+          "text": "Costco says its worldwide renewal rate is adversely affected by membership growth in newer international markets and by a higher share of memberships sold online, including through digital promotions, which renew at a slightly lower rate on average.",
+          "citations": ["COST-10-K-20251008-7-006"]
         }
       ]
     }
