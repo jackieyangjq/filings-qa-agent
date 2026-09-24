@@ -1,0 +1,68 @@
+[
+  {
+    "category": "company",
+    "datetime": 1790173800,
+    "headline": "Acme lifts its  capital expenditure plan",
+    "id": 9001,
+    "image": "",
+    "related": "ACME",
+    "source": "Example Wire",
+    "summary": "The company now expects capital expenditure of $2 billion next year.",
+    "url": "https://wire.example.com/acme-capex"
+  },
+  {
+    "category": "company",
+    "datetime": 1790021640,
+    "headline": "Acme & Co. report: what the quarter says about margins",
+    "id": 9004,
+    "image": "",
+    "related": "ACME",
+    "source": "Sample Times",
+    "summary": "Margins held up while capital spending rose.",
+    "url": "https://times.example.org/acme-margins"
+  },
+  {
+    "category": "company",
+    "datetime": 1790096308,
+    "headline": "Acme shares climb after the widget launch",
+    "id": 9002,
+    "image": "",
+    "related": "ACME",
+    "source": "Example Wire",
+    "summary": "Shares rose 4% after the launch.",
+    "url": "https://wire.example.com/acme-widget"
+  },
+  {
+    "category": "company",
+    "datetime": 1790078400,
+    "headline": "Acme shares climb after the widget launch",
+    "id": 9003,
+    "image": "",
+    "related": "ACME",
+    "source": "Other Daily",
+    "summary": "The same story, earlier in the day.",
+    "url": "https://daily.example.net/acme-widget"
+  },
+  {
+    "category": "company",
+    "datetime": 1788339600,
+    "headline": "Acme names a new chief financial officer",
+    "id": 9005,
+    "image": "",
+    "related": "ACME",
+    "source": "Example Wire",
+    "summary": "The new CFO will oversee capital expenditure.",
+    "url": "https://wire.example.com/acme-cfo"
+  },
+  {
+    "category": "company",
+    "datetime": 0,
+    "headline": "Acme widget orders: an undated item",
+    "id": 9006,
+    "image": "",
+    "related": "ACME",
+    "source": "Example Wire",
+    "summary": "No date.",
+    "url": "https://wire.example.com/acme-undated"
+  }
+]

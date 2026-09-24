@@ -2,7 +2,8 @@
 
 Each tool is a plain function returning JSON-ready data, and whatever it reaches outside is injectable, so tests run
 without network: ``search_filings`` takes the store and a retriever, ``get_price`` a ``closes`` function (yfinance by
-default) and ``get_news`` a ``fetch`` function (an HTTP GET of the Google News RSS search, which needs no key).
+default) and ``get_news`` a ``fetch`` function (by default an HTTP GET of Finnhub's company news when the environment
+variable FINNHUB_API_KEY is set, else of the Google News RSS search, which needs no key).
 ``TOOL_DECLARATIONS`` describes the tools to Gemini as function declarations (JSON schema), ``dispatch`` checks a
 call against them and runs it, and ``default_tools`` binds the real implementations to a store.
 """
@@ -13,6 +14,7 @@ import copy
 import functools
 import json
 import logging
+import os
 import re
 import xml.etree.ElementTree as ET
 from collections.abc import Callable, Mapping, Sequence
@@ -24,14 +26,16 @@ from zoneinfo import ZoneInfo
 
 import requests
 
-from .store import Hit, Store
+from .store import STOPWORDS, Hit, Store
 
 NEWS_URL = "https://news.google.com/rss/search?q={query}&hl=en-US&gl=US&ceid=US:en"
+FINNHUB_NEWS_URL = "https://finnhub.io/api/v1/company-news?symbol={symbol}&from={start}&to={end}"
+FINNHUB_KEY_ENV = "FINNHUB_API_KEY"
 USER_AGENT = "filings-qa (https://github.com/jackieyangjq/filings-qa-agent)"
 HTTP_TIMEOUT_S = 20
 DEFAULT_SEARCH_K = 6
 MAX_SEARCH_K = 12
-MAX_NEWS = 10  # headlines returned: the first in the feed's own order (Google's ranking), then newest first
+MAX_NEWS = 10  # headlines returned: the first in ranking order (see get_news), then newest first
 MAX_NEWS_DAYS = 30
 MAX_TRADING_DAYS = 60
 MAX_PRICE_DAYS = 400  # calendar days per get_price call: about 275 rows, a year and a month
@@ -40,6 +44,7 @@ MARKET_TZ = ZoneInfo("America/New_York")
 MARKET_CLOSE = time(16, 0)  # New York time
 INTRADAY_NOTE = "latest price during today's trading session, not a close"
 _TICKER = re.compile(r"\^?[A-Z0-9][A-Z0-9.=-]{0,14}")  # NVDA, BRK-B, BRK.B, ^GSPC
+_WORD = re.compile(r"[^\W_]+")
 
 Retriever = Callable[..., list[Hit]]  # called as retriever(query, strategy=, k=, ticker=, form=, filed=)
 Closes = Callable[[str, date, date], Sequence[tuple[date, float]]]  # (ticker, first day, last day) -> (day, close)
@@ -113,9 +118,9 @@ TOOL_DECLARATIONS: list[dict[str, Any]] = [
     {
         "name": "get_news",
         "description": (
-            f"Recent news headlines about a stock from a Google News search: the {MAX_NEWS} it ranks highest in the "
-            "period, newest first, with the date, source, title and link of each. Headlines are what the outlets "
-            "wrote, not checked facts."
+            f"Recent news headlines about a stock: up to {MAX_NEWS} from the period, newest first, with the date, "
+            "source, title and link of each, from Finnhub's company news or a Google News search. Headlines are what "
+            "the outlets wrote, not checked facts."
         ),
         "parameters": {
             "type": "object",
@@ -127,8 +132,8 @@ TOOL_DECLARATIONS: list[dict[str, Any]] = [
                 },
                 "topic": {
                     "type": "string",
-                    "description": "Words to search for with the ticker, e.g. 'capital expenditure'. Without a "
-                    "topic the search is '<ticker> stock'.",
+                    "description": "Words the headlines should be about, e.g. 'capital expenditure'. Without a topic "
+                    "any recent headline about the stock can come back.",
                 },
             },
             "required": ["ticker"],
@@ -274,10 +279,25 @@ def http_get(url: str) -> bytes:
     return resp.content
 
 
+def finnhub_get(url: str, token: str) -> bytes:
+    """GET a Finnhub API ``url`` with the key ``token`` in the X-Finnhub-Token header, which Finnhub accepts in place
+    of a ``token=`` query parameter: kept out of the url, the key cannot end up in an error message, a trace or a
+    reply to the model."""
+    headers = {"User-Agent": USER_AGENT, "X-Finnhub-Token": token}
+    resp = requests.get(url, headers=headers, timeout=HTTP_TIMEOUT_S)
+    resp.raise_for_status()
+    return resp.content
+
+
 def news_url(ticker: str, topic: str | None = None) -> str:
     """The Google News RSS search for "<TICKER> <topic>", or "<TICKER> stock" without a topic."""
     words = " ".join(str(topic or "").split())[:100] or "stock"
     return NEWS_URL.format(query=quote_plus(f"{ticker} {words}"))
+
+
+def finnhub_news_url(ticker: str, start: date, end: date) -> str:
+    """Finnhub's company news of ``ticker`` from ``start`` to ``end``, without the key (see ``finnhub_get``)."""
+    return FINNHUB_NEWS_URL.format(symbol=quote_plus(ticker), start=start.isoformat(), end=end.isoformat())
 
 
 def parse_news_rss(xml: bytes | str) -> list[dict[str, Any]]:
@@ -297,6 +317,61 @@ def parse_news_rss(xml: bytes | str) -> list[dict[str, Any]]:
     return items
 
 
+def parse_finnhub_news(body: bytes | str) -> list[dict[str, Any]]:
+    """Every item of a Finnhub company-news reply (a JSON list), in its order, as {"published": datetime in UTC or
+    None, "source", "title", "url", "summary"}. A missing or zero timestamp gives None."""
+    items = []
+    for row in json.loads(body):
+        stamp = row.get("datetime")
+        try:
+            published = datetime.fromtimestamp(int(stamp), UTC) if stamp else None
+        except (TypeError, ValueError, OverflowError, OSError):
+            published = None
+        items.append(
+            {
+                "published": published,
+                "source": " ".join(str(row.get("source") or "").split()),
+                "title": " ".join(str(row.get("headline") or "").split()),
+                "url": str(row.get("url") or ""),
+                "summary": " ".join(str(row.get("summary") or "").split()),
+            }
+        )
+    return items
+
+
+def _stem(word: str) -> str:
+    """``word`` without a plural ending, so that it matches the start of both the singular and the plural."""
+    if len(word) > 4 and word.endswith("ies"):
+        return word[:-3]
+    if len(word) > 3 and word.endswith("s") and not word.endswith("ss"):
+        return word[:-1]
+    return word
+
+
+def rank_by_topic(items: Sequence[dict[str, Any]], topic: str | None) -> list[dict[str, Any]]:
+    """Finnhub has no search, so a topic filters its items: those whose title or summary mentions a word of ``topic``
+    (stopwords aside; a word without its plural ending matches the start of a word, so "tariffs" finds "tariff" and
+    "tariffs"), the ones mentioning more of its words first, then the newest. Without a topic, every item, newest
+    first."""
+    words = [w.lower() for w in _WORD.findall(str(topic or ""))]
+    terms = list(dict.fromkeys(_stem(w) for w in words if w not in STOPWORDS))
+
+    def newest(item: dict[str, Any]) -> float:
+        return item["published"].timestamp() if item["published"] else float("-inf")
+
+    if not terms:
+        return sorted(items, key=newest, reverse=True)
+    patterns = [re.compile(rf"\b{re.escape(t)}", re.IGNORECASE) for t in terms]
+    scored = []
+    for item in items:
+        text = f"{item['title']} {item.get('summary', '')}"
+        found = sum(1 for p in patterns if p.search(text))
+        if found:
+            scored.append((found, newest(item), item))
+    scored.sort(key=lambda s: (s[0], s[1]), reverse=True)
+    return [item for _, _, item in scored]
+
+
 def get_news(
     ticker: str,
     days: int = 7,
@@ -305,16 +380,27 @@ def get_news(
     fetch: Fetch | None = None,
     now: datetime | None = None,
 ) -> list[dict[str, str]]:
-    """Headlines of the Google News RSS search for "<TICKER> stock" (or "<TICKER> <topic>") published in the last
-    ``days`` days (1 to ``MAX_NEWS_DAYS``): the first ``MAX_NEWS`` in the feed's order, which is Google's ranking,
-    without repeated titles, then sorted newest first, as [{"date": "2026-09-22", "source", "title", "url"}].
-    ``fetch`` defaults to ``http_get``; ``now`` to the current time."""
+    """Headlines about ``ticker`` published in the last ``days`` days (1 to ``MAX_NEWS_DAYS``), as
+    [{"date": "2026-09-22", "source", "title", "url"}]: the first ``MAX_NEWS`` in ranking order, without repeated
+    titles, sorted newest first. ``now`` defaults to the current time.
+
+    With the environment variable FINNHUB_API_KEY set, they come from Finnhub's company news, ranked by
+    ``rank_by_topic``, and ``fetch`` defaults to ``finnhub_get`` with that key. Without it, they come from the Google
+    News RSS search for "<TICKER> stock" (or "<TICKER> <topic>"), ranked as Google ranks the feed, and ``fetch``
+    defaults to ``http_get``. Google offers these feeds for personal, non-commercial use; Finnhub has a free key."""
     symbol = _ticker(ticker)
     days = max(1, min(int(days), MAX_NEWS_DAYS))
-    since = (now or datetime.now(UTC)) - timedelta(days=days)
+    end = now or datetime.now(UTC)
+    since = end - timedelta(days=days)
+    key = os.environ.get(FINNHUB_KEY_ENV, "").strip()
+    if key:
+        get = fetch or functools.partial(finnhub_get, token=key)
+        ranked = rank_by_topic(parse_finnhub_news(get(finnhub_news_url(symbol, since.date(), end.date()))), topic)
+    else:
+        ranked = parse_news_rss((fetch or http_get)(news_url(symbol, topic)))
     seen: set[str] = set()
     picked = []
-    for item in parse_news_rss((fetch or http_get)(news_url(symbol, topic))):
+    for item in ranked:
         if not item["published"] or item["published"] < since or item["title"].casefold() in seen:
             continue
         seen.add(item["title"].casefold())
@@ -330,7 +416,7 @@ def get_news(
 
 def default_tools(store: Store, retriever: Retriever, *, strategy: str = "hybrid") -> dict[str, Callable[..., Any]]:
     """The three tools by name: ``search_filings`` bound to ``store`` and ``retriever`` (searching with ``strategy``),
-    ``get_price`` from yfinance and ``get_news`` from Google News."""
+    ``get_price`` from yfinance and ``get_news`` from Finnhub (with FINNHUB_API_KEY) or Google News."""
     return {
         "search_filings": functools.partial(search_filings, store=store, retriever=retriever, strategy=strategy),
         "get_price": get_price,

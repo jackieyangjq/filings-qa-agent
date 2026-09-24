@@ -11,7 +11,7 @@ which is not part of the repository.
 |---|---|---|
 | `search_filings(query, ticker, form, filed, k)` | passages (chunks) of the filings, each with its chunk id, company, form, filing date, period, section and text | local SQLite full-text and vector index, hybrid search |
 | `get_price(ticker, start, end or trading_days)` | daily closes, each with a count of trading days from the first | Yahoo Finance through yfinance, adjusted for splits and dividends |
-| `get_news(ticker, days, topic)` | up to 10 headlines with date, source, title and link | Google News RSS search, no key needed |
+| `get_news(ticker, days, topic)` | up to 10 headlines with date, source, title and link | Google News RSS search, no key needed (with `FINNHUB_API_KEY` set, Finnhub's company news instead, an option added after these runs) |
 
 How a run works:
 

@@ -40,13 +40,16 @@ def no_llm_requests(monkeypatch):
 @pytest.fixture(autouse=True)
 def no_tool_network(monkeypatch):
     """Tests never fetch prices or news: a test passes its own ``closes`` or ``fetch`` to the tool, or replaces
-    ``tools.yfinance_closes`` / ``tools.http_get`` itself."""
+    ``tools.yfinance_closes`` / ``tools.http_get`` / ``tools.finnhub_get`` itself. ``FINNHUB_API_KEY`` is unset, so
+    ``get_news`` reads Google News unless a test sets the key."""
 
     def refuse(*args, **kwargs):
         raise AssertionError(f"unexpected network request in a test: {args}")
 
     monkeypatch.setattr(tools, "yfinance_closes", refuse)
     monkeypatch.setattr(tools, "http_get", refuse)
+    monkeypatch.setattr(tools, "finnhub_get", refuse)
+    monkeypatch.delenv(tools.FINNHUB_KEY_ENV, raising=False)
 
 
 @pytest.fixture(autouse=True)

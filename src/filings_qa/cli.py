@@ -580,7 +580,9 @@ def main(argv: list[str] | None = None) -> int:
     p.set_defaults(func=cmd_ask)
 
     p = sub.add_parser(
-        "agent", help="answer a compound question with tools: filing search, daily closes (yfinance), Google News"
+        "agent",
+        help="answer a compound question with tools: filing search, daily closes (yfinance), news headlines (Finnhub"
+        " with FINNHUB_API_KEY, else Google News)",
     )
     p.add_argument("question")
     p.add_argument(

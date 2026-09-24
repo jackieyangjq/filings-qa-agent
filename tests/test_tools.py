@@ -16,8 +16,10 @@ from filings_qa.tools import (
     ToolError,
     default_tools,
     dispatch,
+    finnhub_get,  # the real one, as for yfinance_closes
     get_news,
     get_price,
+    parse_finnhub_news,
     parse_news_rss,
     search_filings,
     summarize,
@@ -33,6 +35,10 @@ OTHER = "OTHR-10-K-20240216-7-001"
 
 def rss(url):
     return (FIXTURES / "google_news_sample.xml").read_bytes()
+
+
+def finnhub(url):
+    return (FIXTURES / "finnhub_news_sample.json").read_bytes()
 
 
 class FakeRetriever:
@@ -105,6 +111,108 @@ def test_get_news_keeps_the_feeds_top_headlines_of_the_period(monkeypatch):
     monkeypatch.setattr(tools, "MAX_NEWS", 2)
     news = get_news("ACME", days=30, fetch=rss, now=NOW)
     assert [(n["date"], n["source"]) for n in news] == [("2026-09-22", "Example Wire"), ("2026-09-21", "Sample Times")]
+
+
+def test_finnhub_items_are_parsed_in_reply_order():
+    items = parse_finnhub_news(finnhub(""))
+    assert len(items) == 6
+    assert items[0] == {
+        "published": datetime(2026, 9, 23, 14, 30, tzinfo=UTC),
+        "source": "Example Wire",
+        "title": "Acme lifts its capital expenditure plan",  # runs of spaces collapsed
+        "url": "https://wire.example.com/acme-capex",
+        "summary": "The company now expects capital expenditure of $2 billion next year.",
+    }
+    assert items[5]["published"] is None  # a zero timestamp
+
+
+def test_get_news_reads_finnhub_when_a_key_is_set(monkeypatch):
+    monkeypatch.setenv("FINNHUB_API_KEY", "test-key")
+    urls = []
+
+    def fetch(url):
+        urls.append(url)
+        return finnhub(url)
+
+    news = get_news("acme", fetch=fetch, now=NOW)
+    assert urls == ["https://finnhub.io/api/v1/company-news?symbol=ACME&from=2026-09-16&to=2026-09-23"]  # no key
+    assert news == [
+        {
+            "date": "2026-09-23",
+            "source": "Example Wire",
+            "title": "Acme lifts its capital expenditure plan",
+            "url": "https://wire.example.com/acme-capex",
+        },
+        {
+            "date": "2026-09-22",
+            "source": "Example Wire",  # the newer of the two items with this title
+            "title": "Acme shares climb after the widget launch",
+            "url": "https://wire.example.com/acme-widget",
+        },
+        {
+            "date": "2026-09-21",
+            "source": "Sample Times",
+            "title": "Acme & Co. report: what the quarter says about margins",
+            "url": "https://times.example.org/acme-margins",
+        },
+    ]  # the item of 2026-09-02 is older than 7 days; the undated one is left out
+    assert [n["date"] for n in get_news("ACME", days=30, fetch=fetch, now=NOW)][-1] == "2026-09-02"
+    assert urls[-1] == "https://finnhub.io/api/v1/company-news?symbol=ACME&from=2026-08-24&to=2026-09-23"
+    monkeypatch.setenv("FINNHUB_API_KEY", "  ")  # a blank key counts as none: Google News
+    google = []
+    assert len(get_news("ACME", fetch=lambda url: google.append(url) or rss(url), now=NOW)) == 3
+    assert google == ["https://news.google.com/rss/search?q=ACME+stock&hl=en-US&gl=US&ceid=US:en"]
+
+
+def test_a_topic_filters_and_ranks_finnhub_headlines(monkeypatch):
+    """Finnhub has no search: the headlines whose title or summary mention more words of the topic come first, then
+    the newest; MAX_NEWS of them are kept and returned newest first."""
+    monkeypatch.setenv("FINNHUB_API_KEY", "test-key")
+
+    def dates(topic):
+        return [(n["date"], n["source"]) for n in get_news("ACME", days=30, topic=topic, fetch=finnhub, now=NOW)]
+
+    # capital and expenditure: 2026-09-23 (title) and 2026-09-02 (summary); capital only: 2026-09-21
+    assert dates("the Capital Expenditures") == [
+        ("2026-09-23", "Example Wire"), ("2026-09-21", "Sample Times"), ("2026-09-02", "Example Wire"),
+    ]
+    assert dates("margin") == [("2026-09-21", "Sample Times")]  # "margin" finds "margins"
+    assert dates("officers") == [("2026-09-02", "Example Wire")]  # and "officers" finds "officer"
+    assert dates("tariffs") == []
+    assert len(dates("the")) == 4  # only a stopword: no topic
+    monkeypatch.setattr(tools, "MAX_NEWS", 2)  # the two that mention both words, though one is the oldest
+    assert dates("capital expenditures") == [("2026-09-23", "Example Wire"), ("2026-09-02", "Example Wire")]
+    # without a topic, the newest two, whatever the order of the reply
+    assert dates(None) == [("2026-09-23", "Example Wire"), ("2026-09-22", "Example Wire")]
+
+
+def test_finnhub_key_goes_in_a_header_not_the_url(monkeypatch):
+    monkeypatch.setenv("FINNHUB_API_KEY", " test-key ")
+    calls = []
+
+    def fake_finnhub_get(url, token):
+        calls.append((url, token))
+        return b"[]"
+
+    monkeypatch.setattr(tools, "finnhub_get", fake_finnhub_get)
+    assert get_news("ACME", now=NOW) == []
+    assert calls == [("https://finnhub.io/api/v1/company-news?symbol=ACME&from=2026-09-16&to=2026-09-23", "test-key")]
+
+    sent = {}
+
+    class Response:
+        content = b"[]"
+
+        def raise_for_status(self):
+            pass
+
+    def fake_get(url, headers, timeout):
+        sent.update(url=url, headers=headers, timeout=timeout)
+        return Response()
+
+    monkeypatch.setattr(tools.requests, "get", fake_get)
+    assert finnhub_get(calls[0][0], "test-key") == b"[]"
+    assert sent["headers"]["X-Finnhub-Token"] == "test-key" and "test-key" not in sent["url"]
 
 
 def test_get_price_rounds_the_closes_and_checks_the_dates():
