@@ -1,5 +1,7 @@
 # filings-qa-agent
 
+**English** | [简体中文](README.zh-CN.md)
+
 [![CI](https://github.com/jackieyangjq/filings-qa-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/jackieyangjq/filings-qa-agent/actions/workflows/ci.yml)
 
 Question answering over SEC 10-K and 10-Q filings with a checkable source on every sentence, a tool-using research agent, and an evaluation of three ways to retrieve the passages.
@@ -210,16 +212,3 @@ companies.yaml      the companies and forms that ingest downloads
 ## License
 
 MIT © 2026 Jiaqi Yang. See [LICENSE](LICENSE).
-
-## 中文说明
-
-财报问答研究助手：从美国证监会（SEC）的公开财报系统 EDGAR 下载 12 家大公司最近的年报（10-K）和季报（10-Q），切成约 280 词的段落，建好关键词索引和向量索引（向量索引按语义相近程度找段落）。`filings-qa ask` 让 Gemini 只根据检索到的段落回答，每句话后面标出所用段落的编号，引用了没给模型看过的段落的句子整句删掉；`filings-qa agent` 还能调用股价和新闻工具；`filings-qa eval` 用 50 道题比较三种检索方式：只用关键词（BM25）答对 95.0%，关键词和向量混合 90.0%，只用向量 70.0%。程序只转述财报、股价和新闻的内容，不给投资建议。
-
-不需要密钥、不联网的演示（还没发布到 PyPI，也就是 Python 的官方软件包仓库，所以从 GitHub 安装）：
-
-```bash
-pip install "filings-qa-agent @ git+https://github.com/jackieyangjq/filings-qa-agent"
-filings-qa demo
-```
-
-正式使用分四步：填密钥、下载财报、建向量索引、提问或评测，命令见上文 [Run it](#run-it)。
