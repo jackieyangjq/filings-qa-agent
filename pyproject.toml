@@ -2,6 +2,7 @@
 name = "filings-qa-agent"
 version = "0.1.0"
 description = "Question answering over SEC 10-K/10-Q filings with checkable citations, a tool-using agent, and a retrieval evaluation."
+readme = "README.md"
 requires-python = ">=3.12"
 license = { text = "MIT" }
 dependencies = ["pydantic>=2", "pyyaml", "beautifulsoup4", "lxml", "numpy", "requests"]

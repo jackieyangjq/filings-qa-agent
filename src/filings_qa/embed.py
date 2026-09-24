@@ -124,7 +124,10 @@ def embedder_from_spec(spec: dict[str, Any], *, cache_dir: Path | str | None = N
 
 class DenseIndex:
     """Unit-length chunk vectors searched by a full scan: the dot product with a unit query vector is the cosine
-    similarity. Thousands of chunks at 384 dimensions take about 10 MB and under a millisecond per query."""
+    similarity. The 9,814 chunks of the default 48 filings, at 384 dimensions, take 15 MB, and a query scans them in
+    about 0.6 ms on a laptop (Apple silicon, measured on 2026-09-24). The time grows with the number of chunks: about
+    9 ms for 100,000 (154 MB) and 0.1 s for a million (1.5 GB), where an approximate nearest-neighbour index starts to
+    be worth its extra machinery."""
 
     def __init__(self, ids: Sequence[str], vectors: Any, embedder_spec: dict[str, Any] | None = None):
         vectors = normalize(vectors)

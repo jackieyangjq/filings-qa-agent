@@ -2,6 +2,7 @@ import os
 import re
 import socket
 import tempfile
+from pathlib import Path
 
 from filings_qa import cli, demo
 from filings_qa.demo import DemoQuestion
@@ -9,6 +10,7 @@ from filings_qa.embed import DenseIndex
 from filings_qa.store import Store, db_path
 
 KEYS = ("GEMINI_API_KEY", "SEC_USER_AGENT", "FINNHUB_API_KEY", "FASTEMBED_CACHE_PATH")
+README = Path(__file__).resolve().parents[1] / "README.md"
 
 
 class ReadRecorder(dict):
@@ -110,3 +112,12 @@ def test_the_corpus_is_six_short_excerpts_of_three_filings():
         assert e.filing.accession.replace("-", "") in e.filing.url and str(e.filing.cik) in e.filing.url
     assert len({e.filing.url for e in excerpts}) == 3  # two sections of one filing per company
 
+
+def test_the_readme_quotes_the_demo_output_as_it_is(capsys):
+    """The lines of demo output quoted in the README must still be printed by `filings-qa demo`: when the replies, the
+    excerpts or the format change, the README must change too."""
+    block = README.read_text(encoding="utf-8").split("$ filings-qa demo\n", 1)[1].split("```", 1)[0]
+    quoted = [line for line in block.splitlines() if line.strip() and line != "…"]
+    assert cli.main(["demo"]) == 0
+    printed = capsys.readouterr().out.splitlines()
+    assert len(quoted) >= 5 and [line for line in quoted if line not in printed] == []
