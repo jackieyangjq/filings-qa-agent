@@ -1,5 +1,5 @@
 """Command line entry point: ``filings-qa ingest``, ``stats``, ``index``, ``search``, ``ask``, ``agent``,
-``evalset build`` and ``eval``."""
+``evalset build``, ``eval`` and ``demo``."""
 
 from __future__ import annotations
 
@@ -15,7 +15,7 @@ from typing import Any
 
 import yaml
 
-from . import edgar, evalset, evaluate
+from . import demo, edgar, evalset, evaluate
 from .agent import AGENT_MODELS, DEFAULT_MAX_STEPS, AgentResult, Step, rounds_text, run_agent
 from .answer import ANSWER_MODELS, Answer, answer
 from .chunk import chunk_filing
@@ -534,6 +534,20 @@ def cmd_eval(args: argparse.Namespace) -> int:
     return 1 if left else 0
 
 
+def cmd_demo(args: argparse.Namespace) -> int:
+    answers = demo.run()
+    print()
+    found = demo.problems(answers)
+    if found:
+        print(f"demo check failed: {'; '.join(found)}", file=sys.stderr)
+        return 1
+    print(
+        f"All {len(answers)} answers passed the citation check. For live answers, ingest and index the filings and set"
+        ' GEMINI_API_KEY, then run `filings-qa ask "<question>"` (see the README).'
+    )
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="filings-qa", description="Question answering over SEC 10-K/10-Q filings.")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -630,6 +644,12 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--out", help="results JSON (default: eval/results/<today>.json)")
     p.add_argument("--data", default="data", help="data folder; items are cached in <data>/cache/eval")
     p.set_defaults(func=cmd_eval)
+
+    p = sub.add_parser(
+        "demo",
+        help="answer three questions offline from six filing excerpts shipped with the package (no network or key)",
+    )
+    p.set_defaults(func=cmd_demo)
 
     args = parser.parse_args(argv)
     return args.func(args)

@@ -1,0 +1,70 @@
+https://www.sec.gov/Archives/edgar/data/1045810/000104581026000075/nvda-20260726.htm
+Second Quarter of Fiscal Year 2027 Summary
+Three Months Ended	Quarter-over-Quarter Change	Year-over-Year Change
+Jul 26, 2026	Apr 26, 2026	Jul 27, 2025
+($ in millions, except per share data)
+Revenue	$96,221	$81,615	$46,743	18%	106%
+Gross margin	75.0%	74.9%	72.4%	0.1 pts	2.6 pts
+Operating expenses	$8,408	$7,621	$5,413	10%	55%
+Operating income	$63,734	$53,536	$28,440	19%	124%
+Net income	$59,688	$58,321	$26,422	2%	126%
+Net income per diluted share	$2.46	$2.39	$1.08	3%	128%
+We specialize in markets where our computing platforms can provide tremendous acceleration for applications. These platforms incorporate processors, interconnects, software, algorithms, systems, and services to deliver unique value. Our platforms address large markets where our expertise is critical: Data Center and Edge Computing.
+Three Months Ended	Quarter-over-Quarter Change	Year-over-Year Change
+Jul 26, 2026	Apr 26, 2026	Jul 27, 2025
+($ in millions)
+Revenue by Market Platform (1) (2)
+Data Center	$89,023	$75,246	$41,096	18%	117%
+Hyperscale	48,710	43,050	24,168	13%	102%
+AI Clouds, Industrial, & Enterprise	40,313	32,196	16,928	25%	138%
+Edge Computing	7,198	6,369	5,647	13%	27%
+Total revenue	$96,221	$81,615	$46,743	18%	106%
+(1) In the first quarter of fiscal year 2027, we changed our presentation of revenue by market platform and the comparable periods have been recast.
+(2) During the second quarter of fiscal year 2027, we reclassified a company from ACIE to Hyperscale due to a change in their business model and recast the prior period revenue associated with this company.
+Revenue was $96.2 billion, up 106% from a year ago and up 18% sequentially.
+Data Center revenue was $89.0 billion, up 117% from a year ago and up 18% sequentially, driven by the ramp of our Blackwell Ultra infrastructure. Hyperscale revenue more than doubled from a year ago and increased 13% sequentially on the strength of Blackwell Ultra. ACIE revenue increased 138% from a year ago and 25% sequentially driven by end-demand from AI natives, enterprises, and sovereign customers, as well as hyperscalers utilizing AI clouds. Shipments of Data Center Hopper products to China during the second quarter of fiscal year 2027 were less than 1% of Data Center revenue.
+Edge Computing revenue was $7.2 billion, up 27% from a year ago and up 13% sequentially. The increases were driven by strong sales of Blackwell workstations, partially offset by slower consumer PC sales that were tempered by elevated memory and systems prices.
+Gross margin increased from a year ago on improved mix from Blackwell Ultra. Gross margin was approximately flat sequentially as our Blackwell architecture remains the vast majority of our revenue.
+Operating expenses were up 55% from a year ago and up 10% sequentially. These increases were driven by higher compute infrastructure and compensation and benefits costs.
+Financial Information by Business Segment and Geographic Data
+Refer to Note 13 of the Notes to Condensed Consolidated Financial Statements in Part I, Item 1 of this Quarterly Report on Form 10-Q for disclosures regarding segment information.
+Critical Accounting Policies and Estimates
+Refer to Part II, Item 7, “Critical Accounting Policies and Estimates” of our Annual Report on Form 10-K for the fiscal year ended January 25, 2026. There have been no material changes to our Critical Accounting Policies and Estimates.
+Results of Operations
+The following table sets forth, for the periods indicated, certain items in our Condensed Consolidated Statements of Income expressed as a percentage of revenue.
+Three Months Ended	Six Months Ended
+Jul 26, 2026	Jul 27, 2025	Jul 26, 2026	Jul 27, 2025
+Revenue	100.0%	100.0%	100.0%	100.0%
+Cost of revenue	25.0	27.6	25.0	33.4
+Gross profit	75.0	72.4	75.0	66.6
+Operating expenses
+Research and development	7.4	9.2	7.5	9.1
+Sales, general and administrative	1.4	2.4	1.5	2.4
+Total operating expenses	8.8	11.6	9.0	11.5
+Operating income	66.2	60.8	66.0	55.1
+Other income, net	8.1	6.0	13.6	3.4
+Income before income tax	74.3	66.8	79.6	58.5
+Income tax expense	12.3	10.2	13.2	8.7
+Net income	62.0%	56.6%	66.4%	49.8%
+Revenue and Reportable Segments
+Revenue by Reportable Segments
+Three Months Ended	Six Months Ended
+Jul 26, 2026	Jul 27, 2025	$ Change	% Change	Jul 26, 2026	Jul 27, 2025	$ Change	% Change
+($ in millions)
+Compute & Networking	$88,299	$41,331	$46,968	114%	$162,850	$80,920	$81,930	101%
+Graphics	7,922	5,412	2,510	46%	14,987	9,885	5,102	52%
+Total	$96,221	$46,743	$49,478	106%	$177,837	$90,805	$87,032	96%
+Operating Income by Reportable Segments
+Three Months Ended	Six Months Ended
+Jul 26, 2026	Jul 27, 2025	$ Change	% Change	Jul 26, 2026	Jul 27, 2025	$ Change	% Change
+($ in millions)
+Compute & Networking	$62,696	$28,363	$34,333	121%	$116,031	$50,417	$65,614	130%
+Graphics	3,899	2,242	1,657	74%	6,840	3,882	2,958	76%
+Total	$66,595	$30,605	$35,990	118%	$122,871	$54,299	$68,572	126%
+Compute & Networking revenue – The year-over-year increase in the second quarter and first half of fiscal year 2027 was driven by the ramp of our Blackwell Ultra infrastructure.
+Graphics revenue – The year-over-year increase in the second quarter and first half of fiscal year 2027 was driven by sales of our Blackwell architecture.
+Reportable segment operating income – The year-over-year increase in Compute & Networking segment operating income in the second quarter of fiscal year 2027 was driven by the growth in revenue. The year-over-year increase in Compute & Networking segment operating income in the first half of fiscal year 2027 was driven by the growth in revenue and the non-recurrence of a $4.5 billion charge associated with H20 excess inventory and purchase obligations in the first quarter of fiscal year 2026. The year-over-year increase in Graphics segment operating income in the second quarter and first half of fiscal year 2027 was driven by the growth in revenue.
+Concentration of Revenue
+We refer to customers who purchase products directly from NVIDIA as direct customers, such as AIBs, distributors, ODMs, OEMs, CSPs, AI model makers, and system integrators. Certain direct customers may use either internal resources or third-party system integrators to complete their build. We refer to indirect customers as those who purchase products through our direct customers; indirect customers include CSPs, AI clouds, AI model makers, enterprises, and public sector entities. Our revenue is concentrated among a limited number of direct and indirect customers and this trend may continue.
+Direct Customers – For the second quarter of fiscal year 2027, one direct customer represented 16% of total revenue, which was primarily attributable to the Compute & Networking segment. For the first half of fiscal year 2027, three direct customers represented 16%, 15%, and 13% of total revenue, all of which was primarily attributable to the Compute & Networking segment.
+For the second quarter of fiscal year 2026, two direct customers represented 23% and 16% of total revenue, all of which was primarily attributable to the Compute & Networking segment. For the first half of fiscal year 2026, two direct customers represented 20% and 15% of total revenue, all of which was primarily attributable to the Compute & Networking segment.
