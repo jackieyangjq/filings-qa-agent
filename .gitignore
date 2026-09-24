@@ -10,3 +10,4 @@ dist/
 !.env.example
 data/
 .superpowers/
+demo-output/

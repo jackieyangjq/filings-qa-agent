@@ -1,0 +1,23 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      # All extras, so the tests that need google-genai, pandas or yfinance run too. fastembed is installed but its
+      # model is never downloaded: the tests and the demo use hashed word vectors (FakeEmbedder).
+      - run: pip install -e ".[dev,embed,llm,tools]"
+      - run: ruff check .
+      - run: pytest -q
+      - run: filings-qa demo
