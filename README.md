@@ -22,7 +22,7 @@ Citation check: 3 sentences kept, 0 dropped; they cite the chunks ranked 1, 2 an
 Source: COST-10-K-20251008 https://www.sec.gov/Archives/edgar/data/909832/000090983225000101/cost-20250831.htm
 ```
 
-A chunk id reads `<ticker>-<form>-<filing date>-<section>-<number>`: `COST-10-K-20251008-7-006` is the sixth chunk of Item 7, management's discussion and analysis (MD&A), in the 10-K Costco filed on 2025-10-08. Each excerpt starts where its section starts, so the demo's chunks have the ids and the text that a full ingest gives them (only the last chunk of an excerpt is cut short), and its citations can be checked against the filing.
+A chunk id reads `<ticker>-<form>-<filing date>-<section>-<number>`: `COST-10-K-20251008-7-006` is the sixth chunk of Item 7, management's discussion and analysis (MD&A), in the 10-K Costco filed on 2025-10-08. Each excerpt starts where its section starts, so the demo's chunks have the ids that a full ingest gives them, and the same text apart from a page footer left out of NVIDIA's excerpt and the cut-off last chunk of each excerpt: its citations can be checked against the filing.
 
 A real answer, from `filings-qa ask` over the 48 filings on 2026-09-23. gemini-3.5-flash had used up its free daily quota, so the fallback model, gemini-3.5-flash-lite, answered (the line saying so, printed to standard error, is left out):
 

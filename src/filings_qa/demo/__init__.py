@@ -1,11 +1,12 @@
 """Offline demo: three questions answered from six excerpts of SEC filings, with no network, key or model download.
 
 ``corpus/<TICKER>-<FORM>-<YYYYMMDD>-<item>.txt`` is an excerpt of one section of a filing: its first lines, at most
-1,500 words, of the text that ``filings-qa ingest`` extracts, after a first line giving the filing's url on sec.gov
-(SEC filings are public records). Since every excerpt starts where its section starts, its chunks get the ids that a
-full ingest gives them, with the same text (the last one cut short), so the demo's citations can be checked against
-the filings. ``replies.json`` lists the questions and the model reply the demo replays for each: the JSON that
-``answer.answer`` asks the model for, written from the excerpts, with the chunk ids each sentence relies on.
+1,500 words, of the text that ``filings-qa ingest`` extracts (less a page footer in NVIDIA's MD&A), after a first line
+giving the filing's url on sec.gov (SEC filings are public records). Since every excerpt starts where its section
+starts, its chunks get the ids that a full ingest gives them, with the same text apart from that footer and the cut-off
+last chunk of each excerpt, so the demo's citations can be checked against the filings. ``replies.json`` lists the
+questions and the model reply the demo replays for each: the JSON that ``answer.answer`` asks the model for, written
+from the excerpts, with the chunk ids each sentence relies on.
 
 ``build`` indexes the excerpts as ``ingest`` and ``index`` would, except that the vectors come from ``FakeEmbedder``
 (hashed words) instead of the embedding model. ``run`` does this in a temporary folder and answers each question with
